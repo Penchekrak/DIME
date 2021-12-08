@@ -114,7 +114,11 @@ class FunctionalNet:
         self._layer_funcs = {module_name: self._functionals[type(module)]
                              for module_name, module in model.named_modules()}
 
-    def apply_layer(self, input, layer_name):
+    def __call__(self, input, weights):
+        self.state_dict = weights
+        return self.apply_layer("", input)
+
+    def apply_layer(self, layer_name, input):
         func = self._layer_funcs[layer_name]
         children = self._model_structure[layer_name]
         kwargs = self._layer_kwargs[layer_name]
@@ -124,7 +128,7 @@ class FunctionalNet:
 
     def apply_sequential(self, input, *children):
         for child in children:
-            input = self.apply_layer(input, child)
+            input = self.apply_layer(child, input)
         return input
 
 
@@ -132,5 +136,5 @@ def example():
     model = nn.Sequential(nn.Linear(2, 2), nn.ReLU(), nn.Linear(2, 1))
     print(model(torch.ones(1, 2)))
     f_model = FunctionalNet(model)
-    f_model.state_dict = format_state_dict(model.state_dict())
-    f_model.apply_layer(torch.ones(1, 2), "")
+    weights = format_state_dict(model.state_dict())
+    print(f_model(torch.ones(1, 2), weights))
