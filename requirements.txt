@@ -3,3 +3,4 @@ torchvision
 pytorch-lightning
 torchmetrics
 hydra-core
+wandb
