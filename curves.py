@@ -7,10 +7,6 @@ import torch.nn as nn
 from torch.nn.parameter import Parameter
 
 
-frozen_params = ["running_mean",
-                 "running_var"]
-
-
 def point_on_line(start, end, t):
     return (1 - t) * start + t * end
 
@@ -113,11 +109,13 @@ class CubicBezier(Curve):
 
 
 class StateDictCurve:
+    frozen_params = ["running_mean",
+                     "running_var"]
     def __init__(self, start, end, curve_type, **curve_kwargs):
         self.curves = OrderedDict()
         for param_name in start:
             _, param_type = param_name.rsplit(".", 1)
-            require_grad = param_type not in frozen_params
+            require_grad = param_type not in self.frozen_params
             self.curves[param_name] = curve_type(start[param_name],
                                                  end[param_name],
                                                  require_grad,
