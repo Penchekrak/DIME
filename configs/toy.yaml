@@ -2,13 +2,11 @@ model:
   _target_: toy_model.SingleToyTrainer
   architecture:
     _target_: torch.nn.Sequential
-    args:
-      - {_target_: torch.nn.Flatten}
-
-      -
-        _target_: torch.nn.Linear
-        in_features: 28*28
-        out_features: 10}
+    _args_:
+      - _target_: torch.nn.Flatten
+      - _target_: torch.nn.Linear
+        in_features: 784
+        out_features: 10
 
 
 optimizer:
@@ -25,6 +23,6 @@ trainer:
   log_every_n_steps: 20
 
 logger:
-  project: test
-
+  project: curve-fitting
+  entity: distilling-object-detectors
 checkpoint: {}

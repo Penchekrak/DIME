@@ -10,10 +10,11 @@ from functional_nets import FunctionalNet
 
 
 class SingleToyTrainer(pl.LightningModule):
-    def __init__(self, architecture: torch.nn.Module):
+    def __init__(self, architecture: torch.nn.Module, optimizer_conf):
         super(SingleToyTrainer, self).__init__()
         self.loss = torch.nn.MSELoss()
-        self.net = architecture
+        self.net = instantiate(architecture)
+        self.optimizer_conf = optimizer_conf
 
     def training_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
