@@ -22,8 +22,6 @@ datamodule:
   batch_size: 256
 
 trainer:
-  gpus: 2,3
-  accelerator: ddp
   log_every_n_steps: 20
 
 logger:
