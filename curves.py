@@ -7,6 +7,10 @@ import torch.nn as nn
 from torch.nn.parameter import Parameter
 
 
+frozen_params = ["running_mean",
+                 "running_var"]
+
+
 def point_on_line(start, end, t):
     return (1 - t) * start + t * end
 
@@ -14,10 +18,12 @@ def point_on_line(start, end, t):
 class Curve(nn.Module):
     def __init__(self,
                  start: torch.Tensor,
-                 end: torch.Tensor) -> None:
+                 end: torch.Tensor,
+                 requires_grad: bool = True) -> None:
         super(Curve, self).__init__()
         self.start = start
         self.end = end
+        self.requires_grad = requires_grad
 
     def get_point(self, t: float) -> torch.Tensor:
         raise NotImplementedError
@@ -30,10 +36,11 @@ class Polyline2(Curve):
     def __init__(self,
                  start: torch.Tensor,
                  end: torch.Tensor,
+                 requires_grad: bool = True,
                  point: torch.Tensor = None) -> None:
-        super(Polyline2, self).__init__(start, end)
+        super(Polyline2, self).__init__(start, end, requires_grad)
         point = point or point_on_line(start, end, .5)
-        self.point = Parameter(point)
+        self.point = Parameter(point, requires_grad=self.requires_grad)
 
     def get_point(self, t: float) -> torch.Tensor:
         if t < .5:
@@ -45,13 +52,15 @@ class PolylineN(Curve):
     def __init__(self,
                  start: torch.Tensor,
                  end: torch.Tensor,
-                 n_nodes: int) -> None:
-        super(PolylineN, self).__init__(start, end)
+                 n_nodes: int,
+                 requires_grad: bool = True) -> None:
+        super(PolylineN, self).__init__(start, end, requires_grad)
         self.n_nodes = n_nodes
 
         points = []
         for i in range(1, n_nodes):
-            points.append(Parameter(point_on_line(start, end, i / n_nodes)))
+            points.append(Parameter(point_on_line(start, end, i / n_nodes),
+                                    requires_grad=self.requires_grad))
         self.params = nn.ParameterList(points)
         self._segments = [self.start] + points + [self.end]
 
@@ -71,10 +80,11 @@ class QuadraticBezier(Curve):
     def __init__(self,
                  start: torch.Tensor,
                  end: torch.Tensor,
-                 point: torch.Tensor = None) -> None:
-        super(QuadraticBezier, self).__init__(start, end)
+                 point: torch.Tensor = None,
+                 requires_grad: bool = True) -> None:
+        super(QuadraticBezier, self).__init__(start, end, requires_grad)
         point = point or point_on_line(start, end, .5)
-        self.point = Parameter(point)
+        self.point = Parameter(point, requires_grad=self.requires_grad)
 
     def get_point(self, t: torch.Tensor) -> torch.Tensor:
         return t ** 2 * self.start + \
@@ -87,12 +97,13 @@ class CubicBezier(Curve):
                  start: torch.Tensor,
                  end: torch.Tensor,
                  p1: torch.Tensor = None,
-                 p2: torch.Tensor = None) -> None:
-        super(CubicBezier, self).__init__(start, end)
+                 p2: torch.Tensor = None,
+                 requires_grad: bool = True) -> None:
+        super(CubicBezier, self).__init__(start, end, requires_grad)
         p1 = p1 or point_on_line(start, end, .33)
         p2 = p2 or point_on_line(start, end, .67)
-        self.p1 = Parameter(p1)
-        self.p2 = Parameter(p2)
+        self.p1 = Parameter(p1, requires_grad=self.requires_grad)
+        self.p2 = Parameter(p2, requires_grad=self.requires_grad)
 
     def get_point(self, t: torch.Tensor) -> torch.Tensor:
         return t ** 3 * self.start + \
@@ -105,8 +116,11 @@ class StateDictCurve:
     def __init__(self, start, end, curve_type, **curve_kwargs):
         self.curves = OrderedDict()
         for param_name in start:
+            _, param_type = param_name.rsplit(".", 1)
+            require_grad = param_type not in frozen_params
             self.curves[param_name] = curve_type(start[param_name],
                                                  end[param_name],
+                                                 require_grad,
                                                  **curve_kwargs)
 
     def get_point(self, t):
