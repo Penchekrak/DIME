@@ -1,0 +1,42 @@
+model:
+  _target_: toy_model.SingleToyTrainer
+  architecture:
+    _target_: torch.nn.Sequential
+      - 
+      -
+
+
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+  weight_decay: 1e-5
+
+datamodule:
+  _target_: datamodule.CelebA
+  data_dir: '../../GANS/homework/2-GAN/celeba'
+  batch_size: 256
+  num_workers: 32
+  train_transforms:
+    RandomRotation:
+      degrees: 10
+    RandomHorizontalFlip:
+      p: 0.5
+    Resize:
+      size: [64, 64]
+    ToTensor: {}
+
+
+  val_transforms:
+    Resize:
+      size: [64, 64]
+    ToTensor: {}
+
+trainer:
+  gpus: 2,3
+  accelerator: ddp
+  log_every_n_steps: 20
+
+logger:
+  project: test
+
+checkpoint: {}
