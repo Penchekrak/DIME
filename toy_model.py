@@ -12,7 +12,7 @@ from functional_nets import FunctionalNet
 class SingleToyTrainer(pl.LightningModule):
     def __init__(self, architecture: torch.nn.Module, optimizer_conf):
         super(SingleToyTrainer, self).__init__()
-        self.loss = torch.nn.MSELoss()
+        self.loss = torch.nn.CrossEntropyLoss()
         self.net = instantiate(architecture)
         self.optimizer_conf = optimizer_conf
 
