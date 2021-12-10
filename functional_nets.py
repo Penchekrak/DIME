@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from torchvision.models.resnet import BasicBlock
+
 
 kwarg_names = {nn.Linear: tuple(),
                nn.Conv2d: ("stride",
@@ -109,13 +111,14 @@ class FunctionalNet:
                              nn.BatchNorm2d: F.batch_norm,
                              nn.ReLU: F.relu,
                              nn.Dropout: F.dropout,
-                             nn.Sequential: self.apply_sequential}
+                             nn.Sequential: self.apply_sequential,
+                             BasicBlock: self.apply_basicblock}
 
         self._layer_funcs = {module_name: self._functionals[type(module)]
                              for module_name, module in model.named_modules()}
 
     def __call__(self, input, weights):
-        self.state_dict = weights
+        self.state_dict = format_state_dict(weights)
         return self.apply_layer("", input)
 
     def apply_layer(self, layer_name, input):
@@ -130,6 +133,17 @@ class FunctionalNet:
         for child in children:
             input = self.apply_layer(child, input)
         return input
+
+    def apply_basicblock(self, input, *children):
+        identity = input
+        output = self.apply_layer(children[0], input)
+        for child in children[1:5]:
+            output = self.apply_layer(child, output)
+        if len(children) == 6:
+            identity = self.apply_layer(children[-1], identity)
+
+        output += identity
+        return self.apply_layer(children[2], output)
 
 
 def example():
