@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from torchvision.models.resnet import BasicBlock
+from torchvision.models.resnet import BasicBlock, ResNet
 
 
 kwarg_names = {nn.Linear: tuple(),
@@ -17,8 +17,16 @@ kwarg_names = {nn.Linear: tuple(),
                nn.BatchNorm2d: ("eps",
                                 "momentum"),
                nn.ReLU: ("inplace",),
-               nn.Dropout: ("p",)}
+               nn.Dropout: ("p",),
+               nn.MaxPool2d: ("kernel_size",
+                              "stride",
+                              "padding",
+                              "dilation",
+                              "return_indices",
+                              "ceil_mode"),
+               nn.AdaptiveAvgPool2d: ("output_size",)}
 
+params_to_drop = ["num_batches_tracked"]
 
 def get_kwargs(layer: nn.Module) -> tp.Dict[str, tp.Any]:
     """Extracts the neccessary parameters from a `layer` instance to pass to a
@@ -92,6 +100,8 @@ def format_state_dict(state_dict: tp.OrderedDict[str, torch.Tensor]) -> \
     formatted_dict = OrderedDict()
     for param_name, param in state_dict.items():
         module_name, param_name = param_name.rsplit(".", 1)
+        if param_name in params_to_drop:
+            continue
         formatted_dict.setdefault(module_name, {})
         formatted_dict[module_name][param_name] = param
     return formatted_dict
@@ -112,7 +122,10 @@ class FunctionalNet:
                              nn.ReLU: F.relu,
                              nn.Dropout: F.dropout,
                              nn.Sequential: self.apply_sequential,
-                             BasicBlock: self.apply_basicblock}
+                             nn.MaxPool2d: F.max_pool2d,
+                             nn.AdaptiveAvgPool2d: F.adaptive_avg_pool2d,
+                             BasicBlock: self.apply_basicblock,
+                             ResNet: self.apply_resnet}
 
         self._layer_funcs = {module_name: self._functionals[type(module)]
                              for module_name, module in model.named_modules()}
@@ -144,6 +157,12 @@ class FunctionalNet:
 
         output += identity
         return self.apply_layer(children[2], output)
+
+    def apply_resnet(self, input, *children):
+        for child in children[:9]:
+            input = self.apply_layer(child, input)
+        input = torch.flatten(input, 1)
+        return self.apply_layer(children[-1], input)
 
 
 def example():
