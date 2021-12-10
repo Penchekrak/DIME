@@ -115,7 +115,7 @@ class FunctionalNet:
                              for module_name, module in model.named_modules()}
 
     def __call__(self, input, weights):
-        self.state_dict = weights
+        self.state_dict = format_state_dict(weights)
         return self.apply_layer("", input)
 
     def apply_layer(self, layer_name, input):
