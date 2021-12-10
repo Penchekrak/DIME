@@ -1,3 +1,6 @@
+import math
+from collections import OrderedDict
+
 import torch
 import torch.nn as nn
 
@@ -13,14 +16,14 @@ class Curve(nn.Module):
                  start: torch.Tensor,
                  end: torch.Tensor) -> None:
         super(Curve, self).__init__()
-        self.start = start.data
-        self.end = end.data
+        self.start = start
+        self.end = end
 
-    def get_inner_point(self, t: float) -> torch.Tensor:
+    def get_point(self, t: float) -> torch.Tensor:
         raise NotImplementedError
 
     def forward(self, t_batch: torch.Tensor) -> torch.Tensor:
-        return torch.stack([self.get_inner_point(t) for t in t_batch])
+        return torch.stack([self.get_point(t) for t in t_batch])
 
 
 class Polyline2(Curve):
@@ -32,7 +35,7 @@ class Polyline2(Curve):
         point = point or point_on_line(start, end, .5)
         self.point = Parameter(point)
 
-    def get_inner_point(self, t: float) -> torch.Tensor:
+    def get_point(self, t: float) -> torch.Tensor:
         if t < .5:
             return point_on_line(self.start, self.point, 2 * t)
         return point_on_line(self.point, self.end, 2 * t - 1)
@@ -52,9 +55,13 @@ class PolylineN(Curve):
         self.params = nn.ParameterList(points)
         self._segments = [self.start] + points + [self.end]
 
-    def get_inner_point(self, t: torch.Tensor) -> torch.Tensor:
-        start_ix = torch.trunc(self.n_nodes * t).int()
-        end_ix = torch.ceil(self.n_nodes * t).int()
+    def get_point(self, t: torch.Tensor) -> torch.Tensor:
+        if isinstance(t, torch.Tensor):
+            start_ix = torch.trunc(self.n_nodes * t).int()
+            end_ix = torch.ceil(self.n_nodes * t).int()
+        else:
+            start_ix = math.trunc(self.n_nodes * t)
+            end_ix = math.ceil(self.n_nodes * t)
         return point_on_line(self._segments[start_ix],
                              self._segments[end_ix],
                              t * self.n_nodes - start_ix)
@@ -69,7 +76,7 @@ class QuadraticBezier(Curve):
         point = point or point_on_line(start, end, .5)
         self.point = Parameter(point)
 
-    def get_inner_point(self, t: torch.Tensor) -> torch.Tensor:
+    def get_point(self, t: torch.Tensor) -> torch.Tensor:
         return t ** 2 * self.start + \
                2 * t * (1 - t) * self.point + \
                (1 - t) ** 2 * self.end
@@ -87,8 +94,21 @@ class CubicBezier(Curve):
         self.p1 = Parameter(p1)
         self.p2 = Parameter(p2)
 
-    def get_inner_point(self, t: torch.Tensor) -> torch.Tensor:
+    def get_point(self, t: torch.Tensor) -> torch.Tensor:
         return t ** 3 * self.start + \
                3 * t * (1 - t) ** 2 * self.p1 + \
                3 * t ** 2 * (1 - t) * self.p2 + \
                (1 - t) ** 3 * self.end
+
+
+class StateDictCurve:
+    def __init__(self, start, end, curve_type, **curve_kwargs):
+        self.curves = OrderedDict()
+        for param_name in start:
+            self.curves[param_name] = curve_type(start[param_name],
+                                                 end[param_name],
+                                                 **curve_kwargs)
+
+    def get_point(self, t):
+        return OrderedDict([(param_name, curve.get_point(t))
+                            for param_name, curve in self.curves.items()])

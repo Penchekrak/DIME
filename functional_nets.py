@@ -134,7 +134,8 @@ class FunctionalNet:
 
 def example():
     model = nn.Sequential(nn.Linear(2, 2), nn.ReLU(), nn.Linear(2, 1))
-    print(model(torch.ones(1, 2)))
+    x = torch.ones(1, 2)
+    print(model(x))
     f_model = FunctionalNet(model)
     weights = format_state_dict(model.state_dict())
-    print(f_model(torch.ones(1, 2), weights))
+    print(f_model(x, weights))
