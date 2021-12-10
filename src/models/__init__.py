@@ -1,1 +1,0 @@
-from SimpleCNN import SimpleCNN
