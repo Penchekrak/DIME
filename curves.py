@@ -108,11 +108,12 @@ class CubicBezier(Curve):
                (1 - t) ** 3 * self.end
 
 
-class StateDictCurve:
+class StateDictCurve(nn.Module):
     frozen_params = ["running_mean",
                      "running_var"]
 
     def __init__(self, start: OrderedDict, end: OrderedDict, curve_type: tp.ClassVar[Curve], **curve_kwargs):
+        super().__init__()
         self.curves: tp.OrderedDict[str, Curve] = OrderedDict()
         self.params = []
         for param_name in start:

@@ -11,21 +11,27 @@ class DataModule(pl.LightningDataModule):
     def __init__(self,
                  data_dir: str = "path/to/dir",
                  batch_size: int = 32,
-                 transform=transforms.ToTensor()):
+                 transform=transforms.ToTensor(),
+                 num_workers=2):
         super().__init__()
         self.data_dir = to_absolute_path(data_dir)
         self.batch_size = batch_size
         self.transform = transform
         self.train_dataset = None
+        self.num_workers = num_workers
 
     def setup(self, stage: Optional[str] = None):
         raise NotImplementedError
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size)
+        return DataLoader(self.train_dataset,
+                          batch_size=self.batch_size,
+                          num_workers=self.num_workers)
 
     def val_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size)
+        return DataLoader(self.train_dataset,
+                          batch_size=self.batch_size,
+                          num_workers=self.num_workers)
 
 
 class MNISTDataModule(DataModule):

@@ -68,6 +68,7 @@ class CurveToyTrainer(pl.LightningModule):
             curve: OmegaConf,
             optimizer_conf: OmegaConf,
             metrics_conf: OmegaConf,
+            n_points_conf: OmegaConf
     ):
         super(CurveToyTrainer, self).__init__()
         self.loss = torch.nn.CrossEntropyLoss()
@@ -78,32 +79,37 @@ class CurveToyTrainer(pl.LightningModule):
 
         self.curve: StateDictCurve = create_curve_from_conf(curve)
         self.t_distribution = Uniform(0, 1)
+        self.n_points = n_points_conf
 
     def training_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
-        output = self.forward(x)
+        t = self.t_distribution.sample()
+        output = self.forward(x, t)
         loss = self.loss(output, y)
-        self.log_dict(
-            {
-                'loss': loss
-            }
-        )
+        self.log('loss', loss)
         return loss
 
     def validation_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
-        output = self.forward(x)
+
+        if batch_idx == 0:
+            curve_loss = 0.
+            for t in torch.linspace(0, 1, self.n_points):
+                output = self.forward(x, t)
+                curve_loss += self.loss(output, y)
+
+            self.log('curve loss', curve_loss / self.n_points)
+
+        t = self.t_distribution.sample()
+
+        output = self.forward(x, t)
         loss = self.loss(output, y)
-        self.log_dict(
-            {
-                'val loss': loss
-            }
-        )
+
+        self.log('val loss', loss)
         self.log_dict(self.metrics(output, y))
         return loss
 
-    def forward(self, x):
-        t = self.t_distribution.sample()
+    def forward(self, x, t):
         weights = self.curve.get_point(t)
         return self.net(x, weights)
 

@@ -38,3 +38,5 @@ logger:
 checkpoint:
   dirpath: 'ckpt'
   monitor: Accuracy
+
+n_points: 5
