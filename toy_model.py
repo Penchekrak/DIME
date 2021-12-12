@@ -3,6 +3,7 @@ from pydoc import locate
 
 import pytorch_lightning as pl
 import torch
+import wandb
 from hydra.utils import instantiate, to_absolute_path
 from omegaconf import OmegaConf, DictConfig
 from torch.distributions import Uniform
@@ -93,12 +94,13 @@ class CurveToyTrainer(pl.LightningModule):
         x, y = batch
 
         if batch_idx == 0:
-            curve_loss = 0.
+            curve_loss = {}
             for t in torch.linspace(0, 1, self.n_points):
                 output = self.forward(x, t)
-                curve_loss += self.loss(output, y)
+                curve_loss[f"loss at/{t:.4f}"] = self.loss(output, y)
 
-            self.log('curve loss', curve_loss / self.n_points, on_epoch=True)
+            self.log_dict(curve_loss, on_epoch=True, on_step=False)
+            # self.logger.experiment.log({"curve loss": wandb.plot.line(loss_table, "t", "loss", title="Curve loss")})
 
         t = self.t_distribution.sample()
 
