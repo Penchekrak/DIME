@@ -1,30 +1,31 @@
 import os
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning import seed_everything, Trainer
-from omegaconf import DictConfig, OmegaConf
+
 import hydra
-from hydra.utils import instantiate
-from pytorch_lightning.plugins import DDPPlugin
+from hydra.utils import instantiate, to_absolute_path
+from omegaconf import DictConfig, OmegaConf
+from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
+# from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.loggers import WandbLogger
 
 
 @hydra.main(config_path='configs')
 def main(cfg: DictConfig):
+    seed_everything(cfg.seed)
     logger = WandbLogger(**cfg.logger)
     logger.log_hyperparams(OmegaConf.to_container(cfg, resolve=True))
-    checkpoint = ModelCheckpoint(**cfg.checkpoint, dirpath='ckpt')
+    checkpoint = ModelCheckpoint(**cfg.checkpoint, save_weights_only=True)
     trainer = Trainer(
         **cfg.trainer,
         logger=logger,
         callbacks=checkpoint,
         # plugins=DDPPlugin(find_unused_parameters=True)
     )
-    model = instantiate(cfg.model, optimizer_conf=cfg.optimizer, _recursive_=False)
+    model = instantiate(cfg.model, optimizer_conf=cfg.optimizer, metrics_conf=cfg.metrics, _recursive_=False)
     datamodule = instantiate(cfg.datamodule)
     trainer.fit(model=model, datamodule=datamodule)
 
 
 if __name__ == '__main__':
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    seed_everything(42)
     main()

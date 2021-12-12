@@ -11,7 +11,7 @@ class DataModule(pl.LightningDataModule):
     def __init__(self,
                  data_dir: str = "path/to/dir",
                  batch_size: int = 32,
-                 transform = transforms.ToTensor()):
+                 transform=transforms.ToTensor()):
         super().__init__()
         self.data_dir = to_absolute_path(data_dir)
         self.batch_size = batch_size
@@ -24,6 +24,9 @@ class DataModule(pl.LightningDataModule):
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size)
 
+    def val_dataloader(self):
+        return DataLoader(self.train_dataset, batch_size=self.batch_size)
+
 
 class MNISTDataModule(DataModule):
     def setup(self, stage: Optional[str] = None):
@@ -31,6 +34,10 @@ class MNISTDataModule(DataModule):
                                    train=True,
                                    download=True,
                                    transform=self.transform)
+        self.val_dataset = MNIST(self.data_dir,
+                                 train=False,
+                                 download=True,
+                                 transform=self.transform)
 
 
 class CIFAR10DataModule(DataModule):
@@ -47,6 +54,3 @@ class FashoinMNISTDataModule(DataModule):
                                           train=True,
                                           download=True,
                                           transform=self.transform)
-
-
-

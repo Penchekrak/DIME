@@ -1,9 +1,9 @@
 import math
+import typing as tp
 from collections import OrderedDict
 
 import torch
 import torch.nn as nn
-
 from torch.nn.parameter import Parameter
 
 
@@ -111,7 +111,8 @@ class CubicBezier(Curve):
 class StateDictCurve:
     frozen_params = ["running_mean",
                      "running_var"]
-    def __init__(self, start, end, curve_type, **curve_kwargs):
+
+    def __init__(self, start: OrderedDict, end: OrderedDict, curve_type: tp.ClassVar[Curve], **curve_kwargs):
         self.curves = OrderedDict()
         for param_name in start:
             _, param_type = param_name.rsplit(".", 1)
@@ -120,6 +121,7 @@ class StateDictCurve:
                                                  end[param_name],
                                                  require_grad,
                                                  **curve_kwargs)
+        self.curves = torch.ModuleDict(self.curves)
 
     def get_point(self, t):
         return OrderedDict([(param_name, curve.get_point(t))

@@ -1,3 +1,5 @@
+seed: 43
+
 model:
   _target_: toy_model.SingleToyTrainer
   architecture:
@@ -8,11 +10,13 @@ model:
         in_features: 784
         out_features: 10
 
-
 optimizer:
   _target_: torch.optim.Adam
   lr: 0.001
   weight_decay: 1e-5
+
+metrics:
+  - _target_: torchmetrics.Accuracy
 
 datamodule:
   _target_: datamodules.MNISTDataModule
@@ -21,8 +25,12 @@ datamodule:
 
 trainer:
   log_every_n_steps: 20
+  max_epochs: 100
 
 logger:
   project: curve-fitting
   entity: distilling-object-detectors
-checkpoint: {}
+
+checkpoint:
+  dirpath: 'ckpt'
+  monitor: Accuracy
