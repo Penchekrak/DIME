@@ -98,15 +98,15 @@ class CurveToyTrainer(pl.LightningModule):
                 output = self.forward(x, t)
                 curve_loss += self.loss(output, y)
 
-            self.log('curve loss', curve_loss / self.n_points)
+            self.log('curve loss', curve_loss / self.n_points, on_epoch=True)
 
         t = self.t_distribution.sample()
 
         output = self.forward(x, t)
         loss = self.loss(output, y)
 
-        self.log('val loss', loss)
-        self.log_dict(self.metrics(output, y))
+        self.log('val loss', loss, on_step=True)
+        self.log_dict(self.metrics(output, y), on_step=True)
         return loss
 
     def forward(self, x, t):
