@@ -1,4 +1,4 @@
-seed: 43
+seed: 42
 
 model:
   _target_: toy_model.SingleToyTrainer
