@@ -120,7 +120,7 @@ class StateDictCurve:
             require_grad = param_type not in self.frozen_params
             self.curves[param_name] = curve_type(start[param_name],
                                                  end[param_name],
-                                                 require_grad,
+                                                 requires_grad=require_grad,
                                                  **curve_kwargs)
             self.params.extend(self.curves[param_name].parameters())
 

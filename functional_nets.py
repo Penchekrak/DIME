@@ -86,7 +86,8 @@ def get_model_structure(model: nn.Module) -> tp.Dict[str, tp.List[str]]:
             for module_name, module in model.named_modules()}
 
 
-def format_state_dict(state_dict: tp.OrderedDict[str, torch.Tensor]) -> \
+def format_state_dict(state_dict: tp.OrderedDict[str, torch.Tensor],
+                      param_names: tp.Iterable[str]) -> \
         tp.OrderedDict[str, tp.Dict[str, torch.Tensor]]:
     """Groups the parameters in `state_dict` by their module.
 
@@ -97,7 +98,7 @@ def format_state_dict(state_dict: tp.OrderedDict[str, torch.Tensor]) -> \
         OrderedDict[str, Dict[str, Tensor]]: The formatted state_dict.
     """
     formatted_dict = OrderedDict()
-    for param_name, param in state_dict.items():
+    for param_name, param in zip(param_names, state_dict.values()):
         module_name, param_name = param_name.rsplit(".", 1)
         if param_name in params_to_drop:
             continue
@@ -111,6 +112,7 @@ class FunctionalNet:
         self._build_layer_funcs(model)
         self._layer_kwargs = get_layer_kwargs(model)
         self._model_structure = get_model_structure(model)
+        self._param_names = model.state_dict().keys()
 
         self.state_dict = {}
 
@@ -131,7 +133,7 @@ class FunctionalNet:
                              for module_name, module in model.named_modules()}
 
     def __call__(self, input, weights):
-        self.state_dict = format_state_dict(weights)
+        self.state_dict = format_state_dict(weights, self._param_names)
         return self.apply_layer("", input)
 
     def apply_layer(self, layer_name, input):
