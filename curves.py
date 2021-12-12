@@ -113,7 +113,8 @@ class StateDictCurve:
                      "running_var"]
 
     def __init__(self, start: OrderedDict, end: OrderedDict, curve_type: tp.ClassVar[Curve], **curve_kwargs):
-        self.curves = OrderedDict()
+        self.curves: tp.OrderedDict[str, Curve] = OrderedDict()
+        self.params = []
         for param_name in start:
             _, param_type = param_name.rsplit(".", 1)
             require_grad = param_type not in self.frozen_params
@@ -121,7 +122,10 @@ class StateDictCurve:
                                                  end[param_name],
                                                  require_grad,
                                                  **curve_kwargs)
-        self.curves = torch.ModuleDict(self.curves)
+            self.params.extend(self.curves[param_name].parameters())
+
+    def parameters(self):
+        return self.params
 
     def get_point(self, t):
         return OrderedDict([(param_name, curve.get_point(t))

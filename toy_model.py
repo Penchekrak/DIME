@@ -3,7 +3,7 @@ from pydoc import locate
 
 import pytorch_lightning as pl
 import torch
-from hydra.utils import instantiate
+from hydra.utils import instantiate, to_absolute_path
 from omegaconf import OmegaConf, DictConfig
 from torch.distributions import Uniform
 from torchmetrics import MetricCollection
@@ -56,24 +56,27 @@ class SingleToyTrainer(pl.LightningModule):
 
 
 def create_curve_from_conf(curve_conf: DictConfig):
-    start = torch.load(curve_conf['start'])
-    end = torch.load(curve_conf['end'])
+    start = torch.load(to_absolute_path(curve_conf['start']))['state_dict']
+    end = torch.load(to_absolute_path(curve_conf['end']))['state_dict']
     return StateDictCurve(start, end, curve_type=locate(curve_conf['curve_type']))
 
 
-class CurveToyTrainer(SingleToyTrainer):
+class CurveToyTrainer(pl.LightningModule):
     def __init__(
             self,
             architecture: torch.nn.Module,
+            curve: OmegaConf,
             optimizer_conf: OmegaConf,
             metrics_conf: OmegaConf,
-            curve_conf: OmegaConf
     ):
-        super(CurveToyTrainer, self).__init__(architecture, optimizer_conf, metrics_conf)
+        super(CurveToyTrainer, self).__init__()
         self.loss = torch.nn.CrossEntropyLoss()
         self.net = FunctionalNet(instantiate(architecture))
 
-        self.curve: StateDictCurve = create_curve_from_conf(curve_conf)
+        self.optimizer_conf = optimizer_conf
+        self.metrics: MetricCollection = MetricCollection([instantiate(metric) for metric in metrics_conf])
+
+        self.curve: StateDictCurve = create_curve_from_conf(curve)
         self.t_distribution = Uniform(0, 1)
 
     def training_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):

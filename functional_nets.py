@@ -1,13 +1,10 @@
 import typing as tp
-
 from collections import OrderedDict
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 from torchvision.models.resnet import BasicBlock, ResNet
-
 
 kwarg_names = {nn.Linear: tuple(),
                nn.Conv2d: ("stride",
@@ -24,9 +21,11 @@ kwarg_names = {nn.Linear: tuple(),
                               "dilation",
                               "return_indices",
                               "ceil_mode"),
-               nn.AdaptiveAvgPool2d: ("output_size",)}
+               nn.AdaptiveAvgPool2d: ("output_size",),
+               nn.Flatten: tuple()}
 
 params_to_drop = ["num_batches_tracked"]
+
 
 def get_kwargs(layer: nn.Module) -> tp.Dict[str, tp.Any]:
     """Extracts the neccessary parameters from a `layer` instance to pass to a
@@ -88,7 +87,7 @@ def get_model_structure(model: nn.Module) -> tp.Dict[str, tp.List[str]]:
 
 
 def format_state_dict(state_dict: tp.OrderedDict[str, torch.Tensor]) -> \
-    tp.OrderedDict[str, tp.Dict[str, torch.Tensor]]:
+        tp.OrderedDict[str, tp.Dict[str, torch.Tensor]]:
     """Groups the parameters in `state_dict` by their module.
 
     Args:
@@ -125,7 +124,8 @@ class FunctionalNet:
                              nn.MaxPool2d: F.max_pool2d,
                              nn.AdaptiveAvgPool2d: F.adaptive_avg_pool2d,
                              BasicBlock: self.apply_basicblock,
-                             ResNet: self.apply_resnet}
+                             ResNet: self.apply_resnet,
+                             nn.Flatten: lambda tensor: tensor.flatten(1, -1)}
 
         self._layer_funcs = {module_name: self._functionals[type(module)]
                              for module_name, module in model.named_modules()}
