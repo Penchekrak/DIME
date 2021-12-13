@@ -168,7 +168,7 @@ class MiniMaxToyTrainer(pl.LightningModule):
 
         output = self.forward(x, t)
         mean_curve_loss = self.loss(output, y)
-        self.log('loss', mean_curve_loss)
+        self.log('loss/mean_curve', mean_curve_loss)
         curve_opt.zero_grad()
         self.manual_backward(mean_curve_loss)
         curve_opt.step()
@@ -183,8 +183,16 @@ class MiniMaxToyTrainer(pl.LightningModule):
 
         output_0 = self.forward(x, 0.)
         output_1 = self.forward(x, 1.)
+        loss_0 = self.loss(output_0, y)
+        loss_1 = self.loss(output_1, y)
 
-        adv_loss = self.loss(output_0, y) + self.loss(output_1, y) - max_curve_loss
+        adv_loss = loss_0 + loss_1 - max_curve_loss
+
+        self.log("loss/w0", loss_0)
+        self.log("loss/w1", loss_1)
+        self.log("loss/max_curve", max_curve_loss)
+        self.log("loss/adv", adv_loss)
+
         ends_opt.zero_grad()
         self.manual_backward(adv_loss)
         curve_opt.step()
