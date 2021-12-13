@@ -116,6 +116,8 @@ class StateDictCurve(nn.Module):
         super().__init__()
         self.curves: tp.OrderedDict[str, Curve] = OrderedDict()
         self.params = []
+        self.starts = list(start.values())
+        self.ends = list(end.values())
         for param_name in start:
             _, param_type = param_name.rsplit(".", 1)
             require_grad = param_type not in self.frozen_params
@@ -127,6 +129,12 @@ class StateDictCurve(nn.Module):
 
     def parameters(self):
         return self.params
+
+    def start_parameters(self):
+        return self.starts
+
+    def end_parameters(self):
+        return self.ends
 
     def get_point(self, t):
         return OrderedDict([(param_name, curve.get_point(t))
