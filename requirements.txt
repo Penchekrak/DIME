@@ -4,3 +4,5 @@ pytorch-lightning
 torchmetrics
 hydra-core
 wandb
+matplotlib
+plotly

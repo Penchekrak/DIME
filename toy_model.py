@@ -1,9 +1,9 @@
 import typing as tp
 from pydoc import locate
 
+import plotly.graph_objects as go
 import pytorch_lightning as pl
 import torch
-import wandb
 from hydra.utils import instantiate, to_absolute_path
 from omegaconf import OmegaConf, DictConfig
 from torch.distributions import Uniform
@@ -66,6 +66,18 @@ def create_curve_from_conf(curve_conf: DictConfig):
     return StateDictCurve(start, end, curve_type=locate(curve_conf['curve_type']))
 
 
+@torch.no_grad()
+def log_loss_along_curve(batch, module):
+    x, y = batch
+    curve_loss = []
+    ts = torch.linspace(0, 1, module.n_points)
+    for t in ts:
+        output = module.forward(x, t)
+        curve_loss.append(module.loss(output, y).item())
+    fig = go.Figure(data=go.Scatter(x=ts, y=curve_loss))
+    module.logger.experiment.log({"curve loss": fig})
+
+
 class CurveToyTrainer(pl.LightningModule):
     def __init__(
             self,
@@ -73,7 +85,7 @@ class CurveToyTrainer(pl.LightningModule):
             curve: OmegaConf,
             optimizer_conf: OmegaConf,
             metrics_conf: OmegaConf,
-            n_points_conf: OmegaConf
+            n_points: int = 10
     ):
         super(CurveToyTrainer, self).__init__()
         self.loss = torch.nn.CrossEntropyLoss()
@@ -84,7 +96,7 @@ class CurveToyTrainer(pl.LightningModule):
 
         self.curve: StateDictCurve = create_curve_from_conf(curve)
         self.t_distribution = Uniform(0, 1)
-        self.n_points = n_points_conf
+        self.n_points = n_points
 
     def training_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
@@ -98,13 +110,14 @@ class CurveToyTrainer(pl.LightningModule):
         x, y = batch
 
         if batch_idx == 0:
-            curve_loss = {}
-            for t in torch.linspace(0, 1, self.n_points):
-                output = self.forward(x, t)
-                curve_loss[f"loss at/{t:.4f}"] = self.loss(output, y)
-
-            self.log_dict(curve_loss, on_epoch=True, on_step=False)
-            # self.logger.experiment.log({"curve loss": wandb.plot.line(loss_table, "t", "loss", title="Curve loss")})
+            log_loss_along_curve(batch, self)
+        #     curve_loss = {}
+        #     for t in torch.linspace(0, 1, self.n_points):
+        #         output = self.forward(x, t)
+        #         curve_loss[f"loss at/{t:.4f}"] = self.loss(output, y)
+        #
+        #     self.log_dict(curve_loss, on_epoch=True, on_step=False)
+        #     self.logger.experiment.log({"curve loss": wandb.plot.line(loss_table, "t", "loss", title="Curve loss")})
 
         t = self.t_distribution.sample()
 
@@ -125,13 +138,13 @@ class CurveToyTrainer(pl.LightningModule):
 
 class MiniMaxToyTrainer(pl.LightningModule):
     def __init__(
-        self,
-        architecture: torch.nn.Module,
-        curve: OmegaConf,
-        optimizer_conf: OmegaConf,
-        metrics_conf: OmegaConf,
-        n_points_conf: OmegaConf,
-        eps_conf: OmegaConf
+            self,
+            architecture: torch.nn.Module,
+            curve: OmegaConf,
+            optimizer_conf: OmegaConf,
+            metrics_conf: OmegaConf,
+            eps: float = 0.1,
+            n_points: int = 10
     ):
         super(MiniMaxToyTrainer, self).__init__()
         self.loss = torch.nn.CrossEntropyLoss()
@@ -142,8 +155,8 @@ class MiniMaxToyTrainer(pl.LightningModule):
 
         self.curve: StateDictCurve = create_curve_from_conf(curve)
         self.t_distribution = Uniform(0, 1)
-        self.n_points = n_points_conf
-        self.eps = eps_conf
+        self.n_points = n_points
+        self.eps = eps
 
         self.automatic_optimization = False
 
@@ -180,12 +193,13 @@ class MiniMaxToyTrainer(pl.LightningModule):
         x, y = batch
 
         if batch_idx == 0:
-            curve_loss = {}
-            for t in torch.linspace(0, 1, self.n_points):
-                output = self.forward(x, t)
-                curve_loss[f"loss at/{t:.4f}"] = self.loss(output, y)
-
-            self.log_dict(curve_loss, on_epoch=True, on_step=False)
+            log_loss_along_curve(batch, self)
+            # curve_loss = {}
+            # for t in torch.linspace(0, 1, self.n_points):
+            #     output = self.forward(x, t)
+            #     curve_loss[f"loss at/{t:.4f}"] = self.loss(output, y)
+            #
+            # self.log_dict(curve_loss, on_epoch=True, on_step=False)
             # self.logger.experiment.log({"curve loss": wandb.plot.line(loss_table, "t", "loss", title="Curve loss")})
 
         t = self.t_distribution.sample()

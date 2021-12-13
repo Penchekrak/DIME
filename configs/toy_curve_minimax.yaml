@@ -1,7 +1,7 @@
 seed: 42
 
 model:
-  _target_: toy_model.CurveToyTrainer
+  _target_: toy_model.MiniMaxToyTrainer
   architecture:
     _target_: torch.nn.Sequential
     _args_:
@@ -14,6 +14,7 @@ model:
     end: 'ckpt/test2.ckpt'
     curve_type: curves.Polyline2
   n_points: 5
+  eps: 0.01
 
 
 optimizer:
