@@ -59,6 +59,10 @@ class SingleToyTrainer(pl.LightningModule):
 def create_curve_from_conf(curve_conf: DictConfig):
     start = torch.load(to_absolute_path(curve_conf['start']))['state_dict']
     end = torch.load(to_absolute_path(curve_conf['end']))['state_dict']
+    for param in start.values():
+        param.requires_grad = True
+    for param in end.values():
+        param.requires_grad = True
     return StateDictCurve(start, end, curve_type=locate(curve_conf['curve_type']))
 
 
