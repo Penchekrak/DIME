@@ -59,9 +59,10 @@ class SingleToyTrainer(pl.LightningModule):
 
 def create_curve_from_conf(curve_conf: DictConfig,
                            freeze_start: bool = False,
-                           freeze_end: bool = False):
-    start = torch.load(to_absolute_path(curve_conf['start']))['state_dict']
-    end = torch.load(to_absolute_path(curve_conf['end']))['state_dict']
+                           freeze_end: bool = False,
+                           map_location: tp.Union[str, torch.DeviceObjType] = 'cpu'):
+    start = torch.load(to_absolute_path(curve_conf['start']), map_location=map_location)['state_dict']
+    end = torch.load(to_absolute_path(curve_conf['end']), map_location=map_location)['state_dict']
     if not freeze_start:
         require_grad(start)
     if not freeze_end:
@@ -97,7 +98,7 @@ class CurveToyTrainer(pl.LightningModule):
         self.optimizer_conf = optimizer_conf
         self.metrics: MetricCollection = MetricCollection([instantiate(metric) for metric in metrics_conf])
 
-        self.curve: StateDictCurve = create_curve_from_conf(curve)
+        self.curve: StateDictCurve = create_curve_from_conf(curve, map_location=self.device)
         self.t_distribution = Uniform(0, 1)
         self.n_points = n_points
 
@@ -159,7 +160,7 @@ class MiniMaxToyTrainer(pl.LightningModule):
         self.optimizer_conf = optimizer_conf
         self.metrics: MetricCollection = MetricCollection([instantiate(metric) for metric in metrics_conf])
 
-        self.curve: StateDictCurve = create_curve_from_conf(curve, freeze_start, freeze_end)
+        self.curve: StateDictCurve = create_curve_from_conf(curve, freeze_start, freeze_end, map_location=self.device)
         self.t_distribution = Uniform(0, 1)
         self.n_points = n_points
         self.eps = eps
