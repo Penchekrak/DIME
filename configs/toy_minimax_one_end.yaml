@@ -15,7 +15,7 @@ model:
     curve_type: curves.Polyline2
   n_points: 5
   eps: 0.01
-  freeze_start: False
+  freeze_start: True
   freeze_end: False
 
 

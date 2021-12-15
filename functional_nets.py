@@ -165,12 +165,3 @@ class FunctionalNet:
             input = self.apply_layer(child, input)
         input = torch.flatten(input, 1)
         return self.apply_layer(children[-1], input)
-
-
-def example():
-    model = nn.Sequential(nn.Linear(2, 2), nn.ReLU(), nn.Linear(2, 1))
-    x = torch.ones(1, 2)
-    print(model(x))
-    f_model = FunctionalNet(model)
-    weights = format_state_dict(model.state_dict())
-    print(f_model(x, weights))
