@@ -11,7 +11,7 @@ from torchmetrics import MetricCollection
 
 from curves import StateDictCurve
 from functional_nets import FunctionalNet
-from utils import require_grad, to_device, distance
+from utils import to_device, distance
 
 
 class SingleToyTrainer(pl.LightningModule):
@@ -63,11 +63,10 @@ def create_curve_from_conf(curve_conf: DictConfig,
                            map_location: tp.Union[str, torch.DeviceObjType] = 'cpu'):
     start = torch.load(to_absolute_path(curve_conf['start']), map_location=map_location)['state_dict']
     end = torch.load(to_absolute_path(curve_conf['end']), map_location=map_location)['state_dict']
-    if not freeze_start:
-        require_grad(start)
-    if not freeze_end:
-        require_grad(end)
-    return StateDictCurve(start, end, curve_type=locate(curve_conf['curve_type']))
+    return StateDictCurve(start, end,
+                          curve_type=locate(curve_conf['curve_type']),
+                          freeze_start=freeze_start,
+                          freeze_end=freeze_end)
 
 
 @torch.no_grad()
@@ -200,7 +199,7 @@ class MiniMaxToyTrainer(pl.LightningModule):
         loss_1 = self.loss(output_1, y)
         dist = distance(w0, w1)
 
-        adv_loss = loss_0 + loss_1 - max_curve_loss - torch.log(1 + dist)
+        adv_loss = loss_0 + loss_1 - max_curve_loss
 
         self.log("loss/w0", loss_0)
         self.log("loss/w1", loss_1)
@@ -234,7 +233,7 @@ class MiniMaxToyTrainer(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        curve_opt = instantiate(self.optimizer_conf, params=self.curve.parameters())
+        curve_opt = instantiate(self.optimizer_conf, params=self.curve.inner_parameters())
         ends_opt = instantiate(self.optimizer_conf, params=self.curve.start_parameters() +
                                                            self.curve.end_parameters())
         return ends_opt, curve_opt

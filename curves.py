@@ -15,10 +15,12 @@ class Curve(nn.Module):
     def __init__(self,
                  start: torch.Tensor,
                  end: torch.Tensor,
-                 requires_grad: bool = True) -> None:
+                 requires_grad: bool = True,
+                 freeze_start: bool = False,
+                 freeze_end: bool = False) -> None:
         super(Curve, self).__init__()
-        self.start = start
-        self.end = end
+        self.start = nn.Parameter(start, requires_grad=not freeze_start)
+        self.end = nn.Parameter(end, requires_grad=not freeze_end)
         self.requires_grad = requires_grad
 
     def get_point(self, t: float) -> torch.Tensor:
@@ -32,9 +34,9 @@ class Polyline2(Curve):
     def __init__(self,
                  start: torch.Tensor,
                  end: torch.Tensor,
-                 requires_grad: bool = True,
-                 point: torch.Tensor = None) -> None:
-        super(Polyline2, self).__init__(start, end, requires_grad)
+                 point: torch.Tensor = None,
+                 **curve_kwargs) -> None:
+        super(Polyline2, self).__init__(start, end, **curve_kwargs)
         point = point or point_on_line(start, end, .5)
         self.point = Parameter(point, requires_grad=self.requires_grad)
 
@@ -43,22 +45,25 @@ class Polyline2(Curve):
             return point_on_line(self.start, self.point, 2 * t)
         return point_on_line(self.point, self.end, 2 * t - 1)
 
+    def inner_parameters(self) -> tp.List[torch.Tensor]:
+        return [self.point]
+
 
 class PolylineN(Curve):
     def __init__(self,
                  start: torch.Tensor,
                  end: torch.Tensor,
                  n_nodes: int,
-                 requires_grad: bool = True) -> None:
-        super(PolylineN, self).__init__(start, end, requires_grad)
+                 **curve_kwargs) -> None:
+        super(PolylineN, self).__init__(start, end, **curve_kwargs)
         self.n_nodes = n_nodes
 
-        points = []
+        self.points = []
         for i in range(1, n_nodes):
-            points.append(Parameter(point_on_line(start, end, i / n_nodes),
+            self.points.append(Parameter(point_on_line(start, end, i / n_nodes),
                                     requires_grad=self.requires_grad))
-        self.params = nn.ParameterList(points)
-        self._segments = [self.start] + points + [self.end]
+        self.params = nn.ParameterList(self.points)
+        self._segments = [self.start] + self.points + [self.end]
 
     def get_point(self, t: torch.Tensor) -> torch.Tensor:
         if isinstance(t, torch.Tensor):
@@ -71,14 +76,17 @@ class PolylineN(Curve):
                              self._segments[end_ix],
                              t * self.n_nodes - start_ix)
 
+    def inner_parameters(self) -> tp.List[torch.Tensor]:
+        return self.points
+
 
 class QuadraticBezier(Curve):
     def __init__(self,
                  start: torch.Tensor,
                  end: torch.Tensor,
                  point: torch.Tensor = None,
-                 requires_grad: bool = True) -> None:
-        super(QuadraticBezier, self).__init__(start, end, requires_grad)
+                 **curve_kwargs) -> None:
+        super(QuadraticBezier, self).__init__(start, end, **curve_kwargs)
         point = point or point_on_line(start, end, .5)
         self.point = Parameter(point, requires_grad=self.requires_grad)
 
@@ -87,6 +95,9 @@ class QuadraticBezier(Curve):
                2 * t * (1 - t) * self.point + \
                (1 - t) ** 2 * self.end
 
+    def inner_parameters(self) -> tp.List[torch.Tensor]:
+        return [self.point]
+
 
 class CubicBezier(Curve):
     def __init__(self,
@@ -94,8 +105,8 @@ class CubicBezier(Curve):
                  end: torch.Tensor,
                  p1: torch.Tensor = None,
                  p2: torch.Tensor = None,
-                 requires_grad: bool = True) -> None:
-        super(CubicBezier, self).__init__(start, end, requires_grad)
+                 **curve_kwargs) -> None:
+        super(CubicBezier, self).__init__(start, end, **curve_kwargs)
         p1 = p1 or point_on_line(start, end, .33)
         p2 = p2 or point_on_line(start, end, .67)
         self.p1 = Parameter(p1, requires_grad=self.requires_grad)
@@ -107,35 +118,40 @@ class CubicBezier(Curve):
                3 * t ** 2 * (1 - t) * self.p2 + \
                (1 - t) ** 3 * self.end
 
+    def inner_parameters(self) -> tp.List[torch.Tensor]:
+        return [self.p1, self.p2]
+
 
 class StateDictCurve(nn.Module):
     frozen_params = ["running_mean",
                      "running_var"]
 
-    def __init__(self, start: OrderedDict, end: OrderedDict, curve_type: tp.ClassVar[Curve], **curve_kwargs):
+    def __init__(self,
+                 start: tp.OrderedDict,
+                 end: tp.OrderedDict,
+                 curve_type: tp.ClassVar[Curve],
+                 **curve_kwargs):
         super().__init__()
-        self.curves: tp.OrderedDict[str, Curve] = OrderedDict()
-        self.params = []
-        self._starts = list(start.values())
-        self._ends = list(end.values())
+        curves: tp.OrderedDict[str, Curve] = OrderedDict()
         for param_name in start:
             _, param_type = param_name.rsplit(".", 1)
             require_grad = param_type not in self.frozen_params
-            self.curves[param_name] = curve_type(start[param_name],
-                                                 end[param_name],
-                                                 requires_grad=require_grad,
-                                                 **curve_kwargs)
-            self.params.extend(self.curves[param_name].parameters())
-
-    def parameters(self):
-        return self.params
+            curves[param_name.replace(".", "-")] = curve_type(start[param_name],
+                                                              end[param_name],
+                                                              requires_grad=require_grad,
+                                                              **curve_kwargs)
+        self.curves = nn.ModuleDict(curves)
 
     def start_parameters(self):
-        return self._starts
+        return [curve.start for curve in self.curves.values()]
+
+    def inner_parameters(self):
+        return [param for curve in self.curves.values() for param in curve.inner_parameters() ]
 
     def end_parameters(self):
-        return self._ends
+        return [curve.end for curve in self.curves.values()]
 
     def get_point(self, t):
-        return OrderedDict([(param_name, curve.get_point(t))
+        return OrderedDict([(param_name.replace("-", "."), curve.get_point(t))
                             for param_name, curve in self.curves.items()])
+
