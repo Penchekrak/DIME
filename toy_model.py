@@ -11,7 +11,7 @@ from torchmetrics import MetricCollection
 
 from curves import StateDictCurve
 from functional_nets import FunctionalNet
-from utils import require_grad, to_device
+from utils import require_grad, to_device, distance
 
 
 class SingleToyTrainer(pl.LightningModule):
@@ -76,7 +76,8 @@ def log_loss_along_curve(batch, module):
     curve_loss = []
     ts = torch.linspace(0, 1, module.n_points)
     for t in ts:
-        output = module.forward(x, t)
+        w = module.curve.get_point(t)
+        output = module.forward(x, w)
         curve_loss.append(module.loss(output, y).item())
     fig = go.Figure(data=go.Scatter(x=ts, y=curve_loss))
     module.logger.experiment.log({"curve loss": fig})
@@ -169,36 +170,43 @@ class MiniMaxToyTrainer(pl.LightningModule):
 
     def training_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
-
-        t = self.t_distribution.sample()
         ends_opt, curve_opt = self.optimizers()
 
-        output = self.forward(x, t)
+        t = self.t_distribution.sample()
+        w = self.curve.get_point(t)
+
+        output = self.forward(x, w)
         mean_curve_loss = self.loss(output, y)
         self.log('loss/mean_curve', mean_curve_loss)
+
         curve_opt.zero_grad()
         self.manual_backward(mean_curve_loss)
         curve_opt.step()
 
         curve_loss = []
         for t in torch.linspace(self.eps, 1 - self.eps, self.n_points):
-            output = self.forward(x, t)
+            w = self.curve.get_point(t)
+            output = self.forward(x, w)
             curve_loss.append(self.loss(output, y))
         curve_loss = torch.stack(curve_loss)
 
         max_curve_loss = torch.dot(curve_loss, torch.softmax(curve_loss, dim=0))
 
-        output_0 = self.forward(x, 0.)
-        output_1 = self.forward(x, 1.)
+        w0 = self.curve.get_point(0.)
+        w1 = self.curve.get_point(1.)
+        output_0 = self.forward(x, w0)
+        output_1 = self.forward(x, w1)
         loss_0 = self.loss(output_0, y)
         loss_1 = self.loss(output_1, y)
+        dist = distance(w0, w1)
 
-        adv_loss = loss_0 + loss_1 - max_curve_loss
+        adv_loss = loss_0 + loss_1 - max_curve_loss - torch.log(1 + dist)
 
         self.log("loss/w0", loss_0)
         self.log("loss/w1", loss_1)
         self.log("loss/max_curve", max_curve_loss)
         self.log("loss/adv", adv_loss)
+        self.log("distance", dist)
 
         ends_opt.zero_grad()
         self.manual_backward(adv_loss)
@@ -209,27 +217,21 @@ class MiniMaxToyTrainer(pl.LightningModule):
 
         if batch_idx == 0:
             log_loss_along_curve(batch, self)
-            # curve_loss = {}
-            # for t in torch.linspace(0, 1, self.n_points):
-            #     output = self.forward(x, t)
-            #     curve_loss[f"loss at/{t:.4f}"] = self.loss(output, y)
-            #
-            # self.log_dict(curve_loss, on_epoch=True, on_step=False)
-            # self.logger.experiment.log({"curve loss": wandb.plot.line(loss_table, "t", "loss", title="Curve loss")})
 
         t = self.t_distribution.sample()
+        w = self.curve.get_point(t)
 
-        output = self.forward(x, t)
+        output = self.forward(x, w)
         loss = self.loss(output, y)
 
         self.log('val loss', loss, on_step=True)
         self.log_dict(self.metrics(output, y), on_step=True)
         return loss
 
-    def forward(self, x, t):
-        weights = self.curve.get_point(t)
+    def forward(self, x, weights):
         to_device(weights, self.device)
         return self.net(x, weights)
+
 
     def configure_optimizers(self):
         curve_opt = instantiate(self.optimizer_conf, params=self.curve.parameters())

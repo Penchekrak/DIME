@@ -11,9 +11,9 @@ def require_grad(weights: tp.OrderedDict) -> None:
         weights[param_name] = nn.Parameter(param)
 
 
-def distance(weights1: tp.OrderedDict, weights2: tp.OrderedDict) -> torch.Tensor:
+def distance(state_dict1: tp.OrderedDict, state_dict2: tp.OrderedDict) -> torch.Tensor:
     distances = []
-    for param1, param2 in zip(weights1.values(), weights2.values()):
+    for param1, param2 in zip(state_dict1.values(), state_dict2.values()):
         distances.append(F.mse_loss(param1, param2))
     return torch.stack(distances).sum()
 
