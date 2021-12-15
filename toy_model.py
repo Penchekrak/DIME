@@ -105,7 +105,8 @@ class CurveToyTrainer(pl.LightningModule):
     def training_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
         t = self.t_distribution.sample()
-        output = self.forward(x, t)
+        w = self.curve.get_point(t)
+        output = self.forward(x, w)
         loss = self.loss(output, y)
         self.log('loss', loss)
         return loss
@@ -124,16 +125,15 @@ class CurveToyTrainer(pl.LightningModule):
         #     self.logger.experiment.log({"curve loss": wandb.plot.line(loss_table, "t", "loss", title="Curve loss")})
 
         t = self.t_distribution.sample()
-
-        output = self.forward(x, t)
+        w = self.curve.get_point(t)
+        output = self.forward(x, w)
         loss = self.loss(output, y)
 
         self.log('val loss', loss, on_step=True)
         self.log_dict(self.metrics(output, y), on_step=True)
         return loss
 
-    def forward(self, x, t):
-        weights = self.curve.get_point(t)
+    def forward(self, x, weights):
         to_device(weights, self.device)
         return self.net(x, weights)
 
