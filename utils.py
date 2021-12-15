@@ -4,6 +4,7 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.cuda import device_count
 
 
 def distance(state_dict1: tp.OrderedDict, state_dict2: tp.OrderedDict) -> torch.Tensor:
@@ -34,3 +35,15 @@ def to_state_dict(weights: torch.Tensor, sizes: tp.OrderedDict) -> tp.OrderedDic
 def to_device(state_dict: tp.OrderedDict, device) -> None:
     for param_name, param in state_dict.items():
         state_dict[param_name] = param.to(device)
+
+
+def pick_gpus():
+    n_devices = device_count()
+    if n_devices == 0:
+        gpus = None
+    elif n_devices == 2:
+        # to use only the second GPU on statml3
+        gpus = [1]
+    else:
+        gpus = -1
+    return gpus

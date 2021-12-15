@@ -89,7 +89,9 @@ class CurveToyTrainer(pl.LightningModule):
             curve: OmegaConf,
             optimizer_conf: OmegaConf,
             metrics_conf: OmegaConf,
-            n_points: int = 10
+            n_points: int = 10,
+            freeze_start: bool = False,
+            freeze_end: bool = False
     ):
         super(CurveToyTrainer, self).__init__()
         self.loss = torch.nn.CrossEntropyLoss()
@@ -98,7 +100,7 @@ class CurveToyTrainer(pl.LightningModule):
         self.optimizer_conf = optimizer_conf
         self.metrics: MetricCollection = MetricCollection([instantiate(metric) for metric in metrics_conf])
 
-        self.curve: StateDictCurve = create_curve_from_conf(curve, map_location=self.device)
+        self.curve: StateDictCurve = create_curve_from_conf(curve, freeze_start, freeze_end, map_location=self.device)
         self.t_distribution = Uniform(0, 1)
         self.n_points = n_points
 

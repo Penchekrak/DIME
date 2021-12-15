@@ -14,7 +14,8 @@ model:
     end: 'ckpt/test2.ckpt'
     curve_type: curves.Polyline2
   n_points: 5
-
+  freeze_start: True
+  freeze_end: True
 
 optimizer:
   _target_: torch.optim.Adam
