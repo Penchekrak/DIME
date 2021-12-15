@@ -16,13 +16,14 @@ def main(cfg: DictConfig):
     logger.log_hyperparams(OmegaConf.to_container(cfg, resolve=True))
     checkpoint = ModelCheckpoint(**cfg.checkpoint, save_weights_only=True)
     n_devices = device_count()
-    if n_devices == 0:
-        gpus = None
-    elif n_devices == 2:
-        # to use only the second GPU on statml3
-        gpus = [1]
-    else:
-        gpus = -1
+    # if n_devices == 0:
+    #     gpus = None
+    # elif n_devices == 2:
+    #     # to use only the second GPU on statml3
+    #     gpus = [1]
+    # else:
+    #     gpus = -1
+    gpus = None
     trainer = Trainer(
         **cfg.trainer,
         logger=logger,
