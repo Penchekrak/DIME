@@ -53,7 +53,7 @@ class PolylineN(Curve):
     def __init__(self,
                  start: torch.Tensor,
                  end: torch.Tensor,
-                 n_nodes: int,
+                 n_nodes: int = 1,
                  **curve_kwargs) -> None:
         super(PolylineN, self).__init__(start, end, **curve_kwargs)
         self.n_nodes = n_nodes

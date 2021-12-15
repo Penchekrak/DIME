@@ -7,6 +7,11 @@ import torch.nn.functional as F
 from torch.cuda import device_count
 
 
+def to_parameter(weights: tp.OrderedDict) -> None:
+    for param_name, param in weights.items():
+        weights[param_name] = nn.Parameter(param)
+
+
 def distance(state_dict1: tp.OrderedDict, state_dict2: tp.OrderedDict) -> torch.Tensor:
     distances = []
     for param1, param2 in zip(state_dict1.values(), state_dict2.values()):
