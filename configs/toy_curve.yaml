@@ -40,3 +40,4 @@ logger:
 checkpoint:
   dirpath: 'ckpt'
   monitor: Accuracy
+  mode: 'max'
