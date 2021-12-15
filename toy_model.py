@@ -11,7 +11,7 @@ from torchmetrics import MetricCollection
 
 from curves import StateDictCurve
 from functional_nets import FunctionalNet
-from utils import require_grad
+from utils import require_grad, to_device
 
 
 class SingleToyTrainer(pl.LightningModule):
@@ -133,6 +133,7 @@ class CurveToyTrainer(pl.LightningModule):
 
     def forward(self, x, t):
         weights = self.curve.get_point(t)
+        to_device(weights, self.device)
         return self.net(x, weights)
 
     def configure_optimizers(self):
@@ -200,7 +201,7 @@ class MiniMaxToyTrainer(pl.LightningModule):
 
         ends_opt.zero_grad()
         self.manual_backward(adv_loss)
-        curve_opt.step()
+        ends_opt.step()
 
     def validation_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
@@ -226,6 +227,7 @@ class MiniMaxToyTrainer(pl.LightningModule):
 
     def forward(self, x, t):
         weights = self.curve.get_point(t)
+        to_device(weights, self.device)
         return self.net(x, weights)
 
     def configure_optimizers(self):

@@ -35,3 +35,7 @@ def to_state_dict(weights: torch.Tensor, sizes: tp.OrderedDict) -> tp.OrderedDic
         state_dict[param_name] = weights[offset:offset + param_numel].view(param_size)
         offset += param_numel
     return state_dict
+
+def to_device(state_dict: tp.OrderedDict, device) -> None:
+    for param_name, param in state_dict.items():
+        state_dict[param_name] = param.to(device)
