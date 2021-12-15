@@ -1,4 +1,5 @@
 import typing as tp
+from collections import OrderedDict
 
 import torch
 import torch.nn as nn
@@ -15,3 +16,22 @@ def distance(weights1: tp.OrderedDict, weights2: tp.OrderedDict) -> torch.Tensor
     for param1, param2 in zip(weights1.values(), weights2.values()):
         distances.append(F.mse_loss(param1, param2))
     return torch.stack(distances).sum()
+
+
+def to_tensor(state_dict: tp.OrderedDict) -> tp.Tuple[torch.Tensor, tp.OrderedDict]:
+    sizes = OrderedDict()
+    weights = []
+    for param_name, param in state_dict.items():
+        sizes[param_name] = (param.numel(), param.size())
+        weights.append(param.flatten())
+    return torch.hstack(weights), sizes
+
+
+def to_state_dict(weights: torch.Tensor, sizes: tp.OrderedDict) -> tp.OrderedDict:
+    state_dict = OrderedDict()
+    offset = 0
+    for param_name, shape_data in sizes.items():
+        param_numel, param_size = shape_data
+        state_dict[param_name] = weights[offset:offset + param_numel].view(param_size)
+        offset += param_numel
+    return state_dict
