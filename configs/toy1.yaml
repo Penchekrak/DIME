@@ -1,0 +1,37 @@
+seed: 1
+
+model:
+  _target_: toy_model.SingleToyTrainer
+  architecture:
+    _target_: torch.nn.Sequential
+    _args_:
+      - _target_: torch.nn.Flatten
+      - _target_: torch.nn.Linear
+        in_features: 784
+        out_features: 10
+
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+  weight_decay: 1e-5
+
+metrics:
+  - _target_: torchmetrics.Accuracy
+
+datamodule:
+  _target_: datamodules.MNISTDataModule
+  data_dir: 'data/MNIST'
+  batch_size: 256
+
+trainer:
+  log_every_n_steps: 20
+  max_epochs: 100
+
+logger:
+  project: curve-fitting
+  entity: distilling-object-detectors
+
+checkpoint:
+  dirpath: 'ckpt'
+  monitor: Accuracy
+  mode: 'max'
