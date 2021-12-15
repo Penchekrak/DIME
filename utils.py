@@ -52,3 +52,12 @@ def pick_gpus():
     else:
         gpus = -1
     return gpus
+
+def unpack_ends(curve_state_dict: tp.OrderedDict) -> tp.Tuple[tp.OrderedDict, tp.OrderedDict]:
+    state_dicts = {"start": OrderedDict(), "end": OrderedDict()}
+    for param_name, param in curve_state_dict.items():
+        _, param_name, kind = param_name.rsplit(".", maxsplit=2)
+        if kind not in state_dicts:
+            continue
+        state_dicts[kind][param_name.replace("-", ".")] = param
+    return state_dicts["start"], state_dicts["end"]

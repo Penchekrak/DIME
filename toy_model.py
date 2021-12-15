@@ -11,7 +11,7 @@ from torchmetrics import MetricCollection
 
 from curves import StateDictCurve
 from functional_nets import FunctionalNet
-from utils import to_device, distance
+from utils import to_device, distance, unpack_ends
 
 
 class SingleToyTrainer(pl.LightningModule):
@@ -61,8 +61,12 @@ def create_curve_from_conf(curve_conf: DictConfig,
                            freeze_start: bool = False,
                            freeze_end: bool = False,
                            map_location: tp.Union[str, torch.DeviceObjType] = 'cpu'):
-    start = torch.load(to_absolute_path(curve_conf['start']), map_location=map_location)['state_dict']
-    end = torch.load(to_absolute_path(curve_conf['end']), map_location=map_location)['state_dict']
+    if "checkpoint" in curve_conf:
+        curve_state_dict = torch.load(to_absolute_path(curve_conf['path']), map_location=map_location)['state_dict']
+        start, end = unpack_ends(curve_state_dict)
+    else:
+        start = torch.load(to_absolute_path(curve_conf['start']), map_location=map_location)['state_dict']
+        end = torch.load(to_absolute_path(curve_conf['end']), map_location=map_location)['state_dict']
     return StateDictCurve(start, end,
                           curve_type=locate(curve_conf['curve_type']),
                           freeze_start=freeze_start,
