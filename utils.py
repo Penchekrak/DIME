@@ -7,10 +7,15 @@ import torch.nn.functional as F
 from torch.cuda import device_count
 
 
+def to_parameter(weights: tp.OrderedDict) -> None:
+    for param_name, param in weights.items():
+        weights[param_name] = nn.Parameter(param)
+
+
 def distance(state_dict1: tp.OrderedDict, state_dict2: tp.OrderedDict) -> torch.Tensor:
     distances = []
     for param1, param2 in zip(state_dict1.values(), state_dict2.values()):
-        distances.append(F.mse_loss(param1, param2))
+        distances.append(F.mse_loss(param1, param2, reduction="sum"))
     return torch.stack(distances).sum()
 
 
@@ -55,3 +60,34 @@ def pick_device():
     if gpus == 0:
         return torch.device('cpu')
     return torch.device(f'cuda:{gpus[0]}')
+
+
+def unpack_ends(curve_state_dict: tp.OrderedDict) -> tp.Tuple[tp.OrderedDict, tp.OrderedDict]:
+    state_dicts = {"start": OrderedDict(), "end": OrderedDict()}
+    for param_name, param in curve_state_dict.items():
+        _, param_name, kind = param_name.rsplit(".", maxsplit=2)
+        if kind not in state_dicts:
+            continue
+        state_dicts[kind][param_name.replace("-", ".")] = param
+    return state_dicts["start"], state_dicts["end"]
+
+
+class Block(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=3):
+        super().__init__()
+        self.block = nn.Sequential(
+            nn.Conv2d(in_channels,
+                      out_channels,
+                      kernel_size,
+                      padding=kernel_size // 2),
+            nn.ReLU(),
+            nn.Conv2d(out_channels,
+                      out_channels,
+                      kernel_size,
+                      padding=kernel_size // 2),
+            nn.ReLU(),
+            nn.MaxPool2d(2)
+        )
+
+    def forward(self, inputs):
+        return self.block(inputs)

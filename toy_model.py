@@ -11,7 +11,7 @@ from torchmetrics import MetricCollection
 
 from curves import StateDictCurve
 from functional_nets import FunctionalNet
-from utils import to_device, distance
+from utils import to_device, distance, unpack_ends
 
 
 class SingleToyTrainer(pl.LightningModule):
@@ -61,8 +61,12 @@ def create_curve_from_conf(curve_conf: DictConfig,
                            freeze_start: bool = False,
                            freeze_end: bool = False,
                            map_location: tp.Union[str, torch.DeviceObjType] = 'cpu'):
-    start = torch.load(to_absolute_path(curve_conf['start']), map_location=map_location)['state_dict']
-    end = torch.load(to_absolute_path(curve_conf['end']), map_location=map_location)['state_dict']
+    if "checkpoint" in curve_conf:
+        curve_state_dict = torch.load(to_absolute_path(curve_conf['path']), map_location=map_location)['state_dict']
+        start, end = unpack_ends(curve_state_dict)
+    else:
+        start = torch.load(to_absolute_path(curve_conf['start']), map_location=map_location)['state_dict']
+        end = torch.load(to_absolute_path(curve_conf['end']), map_location=map_location)['state_dict']
     return StateDictCurve(start, end,
                           curve_type=locate(curve_conf['curve_type']),
                           freeze_start=freeze_start,
@@ -118,13 +122,6 @@ class CurveToyTrainer(pl.LightningModule):
 
         if batch_idx == 0:
             log_loss_along_curve(batch, self)
-        #     curve_loss = {}
-        #     for t in torch.linspace(0, 1, self.n_points):
-        #         output = self.forward(x, t)
-        #         curve_loss[f"loss at/{t:.4f}"] = self.loss(output, y)
-        #
-        #     self.log_dict(curve_loss, on_epoch=True, on_step=False)
-        #     self.logger.experiment.log({"curve loss": wandb.plot.line(loss_table, "t", "loss", title="Curve loss")})
 
         t = self.t_distribution.sample()
         w = self.curve.get_point(t)
@@ -141,6 +138,70 @@ class CurveToyTrainer(pl.LightningModule):
 
     def configure_optimizers(self):
         return instantiate(self.optimizer_conf, params=self.curve.parameters())
+
+
+class CurveEndsToyTrainer(pl.LightningModule):
+    def __init__(
+            self,
+            architecture: torch.nn.Module,
+            curve: OmegaConf,
+            optimizer_conf: OmegaConf,
+            metrics_conf: OmegaConf,
+            n_points: int = 10,
+            freeze_start: bool = False,
+            freeze_end: bool = False
+    ):
+        super(CurveEndsToyTrainer, self).__init__()
+        self.loss = torch.nn.CrossEntropyLoss()
+        self.net = FunctionalNet(instantiate(architecture))
+
+        self.optimizer_conf = optimizer_conf
+        self.metrics: MetricCollection = MetricCollection([instantiate(metric) for metric in metrics_conf])
+
+        self.curve: StateDictCurve = create_curve_from_conf(curve,
+                                                            freeze_start,
+                                                            freeze_end,
+                                                            map_location=self.device)
+        self.t_distribution = Uniform(0, 1)
+        self.n_points = n_points
+
+    def training_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
+        x, y = batch
+        w1 = self.curve.get_point(0.)
+        w2 = self.curve.get_point(1.)
+        output1 = self.forward(x, w1)
+        output2 = self.forward(x, w2)
+        l1 = self.loss(output1, y)
+        l2 = self.loss(output2, y)
+        d = distance(w1, w2)
+        self.log('loss/1/train', l1)
+        self.log('loss/2/train', l2)
+        self.log('distance', d)
+        return l1 + l2 - 1 / (1 + d)
+
+    def validation_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
+        x, y = batch
+
+        w1 = self.curve.get_point(0.)
+        w2 = self.curve.get_point(1.)
+        output1 = self.forward(x, w1)
+        output2 = self.forward(x, w2)
+        l1 = self.loss(output1, y)
+        l2 = self.loss(output2, y)
+        self.log('loss/1/val', l1)
+        self.log('loss/2/val', l2)
+        self.log_dict(self.metrics(output1, y), on_step=True)
+        self.log_dict(self.metrics(output2, y), on_step=True)
+        return l1 + l2
+
+    def forward(self, x, weights):
+        to_device(weights, self.device)
+        return self.net(x, weights)
+
+    def configure_optimizers(self):
+        return instantiate(self.optimizer_conf, params=self.curve.parameters())
+
+
 
 
 class MiniMaxToyTrainer(pl.LightningModule):
