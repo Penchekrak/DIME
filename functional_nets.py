@@ -6,6 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models.resnet import BasicBlock, ResNet
 
+import utils
+
+
 kwarg_names = {nn.Linear: tuple(),
                nn.Conv2d: ("stride",
                            "padding",
@@ -22,7 +25,8 @@ kwarg_names = {nn.Linear: tuple(),
                               "return_indices",
                               "ceil_mode"),
                nn.AdaptiveAvgPool2d: ("output_size",),
-               nn.Flatten: tuple()}
+               nn.Flatten: tuple(),
+               nn.Sigmoid: tuple()}
 
 params_to_drop = ["num_batches_tracked"]
 
@@ -127,7 +131,9 @@ class FunctionalNet:
                              nn.AdaptiveAvgPool2d: F.adaptive_avg_pool2d,
                              BasicBlock: self.apply_basicblock,
                              ResNet: self.apply_resnet,
-                             nn.Flatten: lambda tensor: tensor.flatten(1, -1)}
+                             nn.Flatten: lambda tensor: tensor.flatten(1, -1),
+                             nn.Sigmoid: torch.sigmoid,
+                             utils.Block: self.apply_sequential}
 
         self._layer_funcs = {module_name: self._functionals[type(module)]
                              for module_name, module in model.named_modules()}
