@@ -177,7 +177,7 @@ class CurveEndsToyTrainer(pl.LightningModule):
         self.log('loss/1/train', l1)
         self.log('loss/2/train', l2)
         self.log('distance', d)
-        return l1 + l2 - 1 / (1 + d)
+        return l1 + l2 + 1 / (1 + d)
 
     def validation_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
