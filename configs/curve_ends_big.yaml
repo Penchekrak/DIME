@@ -33,7 +33,6 @@ model:
       - _target_: torch.nn.Linear
         in_features: 512
         out_features: 10
-      - _target_: torch.nn.Sigmoid
 
   curve:
     start: 'ckpt/big1.ckpt'
