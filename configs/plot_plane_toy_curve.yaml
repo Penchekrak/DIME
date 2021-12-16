@@ -1,0 +1,38 @@
+seed: 42
+
+model:
+  _target_: toy_model.CurveToyTrainer.load_from_checkpoint
+  checkpoint_path: 'ckpt/curve01.ckpt'
+  architecture:
+    _target_: torch.nn.Sequential
+    _args_:
+      - _target_: torch.nn.Flatten
+      - _target_: torch.nn.Linear
+        in_features: 784
+        out_features: 10
+  curve:
+    start: 'ckpt/toy0.ckpt'
+    end: 'ckpt/toy1.ckpt'
+    curve_type: curves.Polyline2
+  n_points: 5
+
+n_batches: 10
+
+single_model:
+  _target_: toy_model.SingleToyTrainer
+
+metrics:
+  - _target_: torchmetrics.Accuracy
+
+datamodule:
+  _target_: datamodules.MNISTDataModule
+  data_dir: 'data/MNIST'
+  batch_size: 256
+
+trainer:
+  log_every_n_steps: 20
+  max_epochs: 100
+
+logger:
+  project: curve-fitting
+  entity: distilling-object-detectors

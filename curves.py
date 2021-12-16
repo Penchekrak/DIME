@@ -61,7 +61,7 @@ class PolylineN(Curve):
         self.points = []
         for i in range(1, n_nodes):
             self.points.append(Parameter(point_on_line(start, end, i / n_nodes),
-                                    requires_grad=self.requires_grad))
+                                         requires_grad=self.requires_grad))
         self.params = nn.ParameterList(self.points)
         self._segments = [self.start] + self.points + [self.end]
 
@@ -146,12 +146,11 @@ class StateDictCurve(nn.Module):
         return [curve.start for curve in self.curves.values()]
 
     def inner_parameters(self):
-        return [param for curve in self.curves.values() for param in curve.inner_parameters() ]
+        return [param for curve in self.curves.values() for param in curve.inner_parameters()]
 
     def end_parameters(self):
         return [curve.end for curve in self.curves.values()]
 
     def get_point(self, t):
-        return OrderedDict([(param_name.replace("-", "."), curve.get_point(t))
-                            for param_name, curve in self.curves.items()])
-
+        return OrderedDict((param_name.replace("-", "."), curve.get_point(t))
+                           for param_name, curve in self.curves.items())
