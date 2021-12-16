@@ -41,6 +41,7 @@ model:
   n_points: 0
   freeze_start: False
   freeze_end: False
+  C: 1e-6
 
 optimizer:
   _target_: torch.optim.Adam
@@ -53,7 +54,7 @@ metrics:
 datamodule:
   _target_: datamodules.CIFAR10DataModule
   data_dir: 'data/CIFAR10'
-  batch_size: 32
+  batch_size: 64
 
 trainer:
   log_every_n_steps: 20

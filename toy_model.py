@@ -149,7 +149,8 @@ class CurveEndsToyTrainer(pl.LightningModule):
             metrics_conf: OmegaConf,
             n_points: int = 10,
             freeze_start: bool = False,
-            freeze_end: bool = False
+            freeze_end: bool = False,
+            C: float = 1.0
     ):
         super(CurveEndsToyTrainer, self).__init__()
         self.loss = torch.nn.CrossEntropyLoss()
@@ -164,6 +165,7 @@ class CurveEndsToyTrainer(pl.LightningModule):
                                                             map_location=self.device)
         self.t_distribution = Uniform(0, 1)
         self.n_points = n_points
+        self.C = C
 
     def training_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
@@ -177,7 +179,7 @@ class CurveEndsToyTrainer(pl.LightningModule):
         self.log('loss/1/train', l1)
         self.log('loss/2/train', l2)
         self.log('distance', d)
-        return l1 + l2 + 1 / (1 + d)
+        return l1 + l2 + self.C / (1 + d)
 
     def validation_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
