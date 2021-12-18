@@ -221,10 +221,14 @@ class MiniMaxToyTrainer(pl.LightningModule):
         self.optimizer_conf = optimizer_conf
         self.metrics: MetricCollection = MetricCollection([instantiate(metric) for metric in metrics_conf])
 
-        self.curve: StateDictCurve = create_curve_from_conf(curve, freeze_start, freeze_end, map_location=self.device)
+        self.curve: StateDictCurve = create_curve_from_conf(curve,
+                                                            freeze_start,
+                                                            freeze_end,
+                                                            map_location=self.device)
         self.t_distribution = Uniform(0, 1)
         self.n_points = n_points
         self.eps = eps
+        self.C = C
 
         self.automatic_optimization = False
 
@@ -256,17 +260,17 @@ class MiniMaxToyTrainer(pl.LightningModule):
         w1 = self.curve.get_point(1.)
         output_0 = self.forward(x, w0)
         output_1 = self.forward(x, w1)
-        loss_0 = self.loss(output_0, y)
-        loss_1 = self.loss(output_1, y)
-        dist = distance(w0, w1)
+        l0 = self.loss(output_0, y)
+        l1 = self.loss(output_1, y)
+        d = distance(w0, w1)
 
-        adv_loss = loss_0 + loss_1 - max_curve_loss
+        adv_loss = l0 + l1 - max_curve_loss + self.C / (1 + d)
 
-        self.log("loss/w0", loss_0)
-        self.log("loss/w1", loss_1)
+        self.log("loss/w0", l0)
+        self.log("loss/w1", l1)
         self.log("loss/max_curve", max_curve_loss)
         self.log("loss/adv", adv_loss)
-        self.log("distance", dist)
+        self.log("distance", d)
 
         ends_opt.zero_grad()
         self.manual_backward(adv_loss)
