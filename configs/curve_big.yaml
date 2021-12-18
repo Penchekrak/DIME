@@ -35,10 +35,10 @@ model:
         out_features: 10
 
   curve:
-    start: 'ckpt/curve_end_big1.ckpt'
-    end: 'ckpt/curve_end_big2.ckpt'
+    start: 'ckpt/133_end1.ckpt'
+    end: 'ckpt/133_end2.ckpt'
     curve_type: curves.Polyline2
-  n_points: 10
+  n_points: 16
   freeze_start: True
   freeze_end: True
 

@@ -18,6 +18,7 @@ class DataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.transform = transform
         self.train_dataset = None
+        self.val_dataset = None
         self.num_workers = num_workers
 
     def setup(self, stage: Optional[str] = None):
@@ -29,7 +30,7 @@ class DataModule(pl.LightningDataModule):
                           num_workers=self.num_workers)
 
     def val_dataloader(self):
-        return DataLoader(self.train_dataset,
+        return DataLoader(self.val_dataset,
                           batch_size=self.batch_size,
                           num_workers=self.num_workers)
 
@@ -52,6 +53,10 @@ class CIFAR10DataModule(DataModule):
                                      train=True,
                                      download=True,
                                      transform=self.transform)
+        self.val_dataset = CIFAR10(self.data_dir,
+                                   train=False,
+                                   download=True,
+                                   transform=self.transform)
 
 
 class FashoinMNISTDataModule(DataModule):
@@ -60,3 +65,7 @@ class FashoinMNISTDataModule(DataModule):
                                           train=True,
                                           download=True,
                                           transform=self.transform)
+        self.val_dataset = FashionMNIST(self.data_dir,
+                                        train=False,
+                                        download=True,
+                                        transform=self.transform)
