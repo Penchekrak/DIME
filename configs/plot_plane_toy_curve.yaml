@@ -2,19 +2,46 @@ seed: 42
 
 model:
   _target_: toy_model.CurveToyTrainer.load_from_checkpoint
-  checkpoint_path: 'ckpt/curve01.ckpt'
+  checkpoint_path: 'ckpt/curve-138.ckpt'
   architecture:
     _target_: torch.nn.Sequential
     _args_:
+      - _target_: utils.Block
+        in_channels: 3
+        out_channels: 32
+        kernel_size: 3
+      - _target_: utils.Block
+        in_channels: 32
+        out_channels: 64
+        kernel_size: 3
+      - _target_: utils.Block
+        in_channels: 64
+        out_channels: 128
+        kernel_size: 3
+      - _target_: utils.Block
+        in_channels: 128
+        out_channels: 256
+        kernel_size: 3
       - _target_: torch.nn.Flatten
       - _target_: torch.nn.Linear
-        in_features: 784
+        in_features: 1024
+        out_features: 512
+      - _target_: torch.nn.ReLU
+      - _target_: torch.nn.Linear
+        in_features: 512
+        out_features: 512
+      - _target_: torch.nn.ReLU
+      - _target_: torch.nn.Linear
+        in_features: 512
         out_features: 10
+
   curve:
-    start: 'ckpt/toy0.ckpt'
-    end: 'ckpt/toy1.ckpt'
+    start: 'ckpt/133_end1.ckpt'
+    end: 'ckpt/133_end2.ckpt'
     curve_type: curves.Polyline2
-  n_points: 5
+  n_points: 16
+  freeze_start: True
+  freeze_end: True
 
 n_batches: 10
 
@@ -30,9 +57,9 @@ metrics:
   - _target_: torchmetrics.Accuracy
 
 datamodule:
-  _target_: datamodules.MNISTDataModule
-  data_dir: 'data/MNIST'
-  batch_size: 256
+  _target_: datamodules.CIFAR10DataModule
+  data_dir: 'data/CIFAR10'
+  batch_size: 64
 
 trainer:
   log_every_n_steps: 20
