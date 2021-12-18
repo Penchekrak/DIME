@@ -19,12 +19,13 @@ model:
         out_features: 10
 
   curve:
-    start: 'ckpt/big1.ckpt'
-    end: 'ckpt/big2.ckpt'
+    start: 'ckpt/small1.ckpt'
+    end: 'ckpt/small2.ckpt'
     curve_type: curves.PolylineN
   n_points: 0
   freeze_start: False
   freeze_end: False
+  C: 1.0
 
 optimizer:
   _target_: torch.optim.Adam
