@@ -37,6 +37,7 @@ def to_state_dict(weights: torch.Tensor, sizes: tp.OrderedDict) -> tp.OrderedDic
         offset += param_numel
     return state_dict
 
+
 def to_device(state_dict: tp.OrderedDict, device) -> None:
     for param_name, param in state_dict.items():
         state_dict[param_name] = param.to(device)
@@ -50,8 +51,16 @@ def pick_gpus():
         # to use only the second GPU on statml3
         gpus = [1]
     else:
-        gpus = -1
+        gpus = [0]
     return gpus
+
+
+def pick_device():
+    gpus = pick_gpus()
+    if gpus == 0:
+        return torch.device('cpu')
+    return torch.device(f'cuda:{gpus[0]}')
+
 
 def unpack_ends(curve_state_dict: tp.OrderedDict) -> tp.Tuple[tp.OrderedDict, tp.OrderedDict]:
     state_dicts = {"start": OrderedDict(), "end": OrderedDict()}
