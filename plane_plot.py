@@ -81,7 +81,7 @@ def main(cfg: DictConfig):
     y_middle = 1 / dy
 
     margin = 0.
-    n_pts = 2
+    n_pts = cfg.n_pts
     xs = np.linspace(-margin, 1 + margin, n_pts)
     ys = np.linspace(-margin, 1 + margin, n_pts)
     losses = np.zeros((n_pts, n_pts))
