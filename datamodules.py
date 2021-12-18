@@ -12,7 +12,7 @@ class DataModule(pl.LightningDataModule):
                  data_dir: str = "path/to/dir",
                  batch_size: int = 32,
                  transform=transforms.ToTensor(),
-                 num_workers=2):
+                 num_workers=4):
         super().__init__()
         self.data_dir = to_absolute_path(data_dir)
         self.batch_size = batch_size
