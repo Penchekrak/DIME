@@ -80,7 +80,7 @@ def main(cfg: DictConfig):
     x_middle = torch.inner(e_x, e_y_skewed) / dx
     y_middle = 1 / dy
 
-    margin = 0.
+    margin = cfg.margin
     n_pts = cfg.n_pts
     xs = np.linspace(-margin, 1 + margin, n_pts)
     ys = np.linspace(-margin, 1 + margin, n_pts)
