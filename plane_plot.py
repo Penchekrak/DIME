@@ -97,7 +97,7 @@ def main(cfg: DictConfig):
             results = trainer.validate(single_model, val_dataloaders=datamodule.train_dataloader(), verbose=False)[0]
             losses[i, j] = results['val loss']
             accs[i, j] = results['Accuracy']
-            print(accs[i, j], losses[i, j])
+            # print(accs[i, j], losses[i, j])
         # exit()
 
     plt.figure(figsize=(10, 10))
