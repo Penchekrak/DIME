@@ -31,22 +31,14 @@ class SingleToyTrainer(pl.LightningModule):
         x, y = batch
         output = self.forward(x)
         loss = self.loss(output, y)
-        self.log_dict(
-            {
-                'train loss': loss
-            }
-        )
+        self.log('train loss', loss)
         return loss
 
     def validation_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
         output = self.forward(x)
         loss = self.loss(output, y)
-        self.log_dict(
-            {
-                'val loss': loss
-            }
-        )
+        self.log('val loss', loss)
         self.log_dict(self.metrics(output, y))
         return loss
 
@@ -61,12 +53,12 @@ def create_curve_from_conf(curve_conf: DictConfig,
                            freeze_start: bool = False,
                            freeze_end: bool = False,
                            map_location: tp.Union[str, torch.DeviceObjType] = 'cpu'):
-    if "checkpoint" in curve_conf:
-        curve_state_dict = torch.load(to_absolute_path(curve_conf['path']), map_location=map_location)['state_dict']
-        start, end = unpack_ends(curve_state_dict)
-    else:
-        start = torch.load(to_absolute_path(curve_conf['start']), map_location=map_location)['state_dict']
-        end = torch.load(to_absolute_path(curve_conf['end']), map_location=map_location)['state_dict']
+    # if "checkpoint" in curve_conf:
+    #     curve_state_dict = torch.load(to_absolute_path(curve_conf['path']), map_location=map_location)['state_dict']
+    #     start, end = unpack_ends(curve_state_dict)
+    # else:
+    start = torch.load(to_absolute_path(curve_conf['start']), map_location=map_location)['state_dict']
+    end = torch.load(to_absolute_path(curve_conf['end']), map_location=map_location)['state_dict']
     return StateDictCurve(start, end,
                           curve_type=locate(curve_conf['curve_type']),
                           freeze_start=freeze_start,
@@ -184,6 +176,9 @@ class CurveEndsToyTrainer(pl.LightningModule):
     def validation_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
 
+        if batch_idx == 0:
+            log_loss_along_curve(batch, self)
+
         w1 = self.curve.get_point(0.)
         w2 = self.curve.get_point(1.)
         output1 = self.forward(x, w1)
@@ -216,7 +211,8 @@ class MiniMaxToyTrainer(pl.LightningModule):
             eps: float = 0.1,
             n_points: int = 10,
             freeze_start: bool = False,
-            freeze_end: bool = False
+            freeze_end: bool = False,
+            C: float = 1.0
     ):
         super(MiniMaxToyTrainer, self).__init__()
         self.loss = torch.nn.CrossEntropyLoss()
