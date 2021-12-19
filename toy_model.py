@@ -213,7 +213,8 @@ class MiniMaxToyTrainer(pl.LightningModule):
             freeze_start: bool = False,
             freeze_end: bool = False,
             C: float = 1.0,
-            adv_period: int = 1
+            adv_period: int = 1,
+            max_curve_loss_ratio: float = 0.
     ):
         super(MiniMaxToyTrainer, self).__init__()
         self.loss = torch.nn.CrossEntropyLoss()
@@ -231,6 +232,7 @@ class MiniMaxToyTrainer(pl.LightningModule):
         self.eps = eps
         self.C = C
         self.adv_period = adv_period
+        self.max_curve_loss_ratio = max_curve_loss_ratio
 
         self.automatic_optimization = False
 
@@ -249,6 +251,14 @@ class MiniMaxToyTrainer(pl.LightningModule):
         self.manual_backward(mean_curve_loss)
         curve_opt.step()
 
+        w0 = self.curve.get_point(0.)
+        w1 = self.curve.get_point(1.)
+        output_0 = self.forward(x, w0)
+        output_1 = self.forward(x, w1)
+        l0 = self.loss(output_0, y)
+        l1 = self.loss(output_1, y)
+        d = distance(w0, w1)
+
         if batch_idx % self.adv_period == 0:
             curve_loss = []
             for t in torch.linspace(self.eps, 1 - self.eps, self.n_points):
@@ -260,16 +270,10 @@ class MiniMaxToyTrainer(pl.LightningModule):
             max_curve_loss = torch.dot(curve_loss, torch.softmax(curve_loss, dim=0))
             mean_curve_loss = torch.mean(curve_loss, dim=0)
             self.log("loss/max_curve", max_curve_loss)
+            if max_curve_loss > self.max_curve_loss_ratio * max(l0, l1):
+                mean_curve_loss = 0.
         else:
             mean_curve_loss = 0.
-
-        w0 = self.curve.get_point(0.)
-        w1 = self.curve.get_point(1.)
-        output_0 = self.forward(x, w0)
-        output_1 = self.forward(x, w1)
-        l0 = self.loss(output_0, y)
-        l1 = self.loss(output_1, y)
-        d = distance(w0, w1)
 
         adv_loss = l0 + l1 - mean_curve_loss + self.C / (1 + d)
 

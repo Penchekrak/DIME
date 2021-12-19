@@ -42,6 +42,7 @@ model:
   freeze_end: False
   C: 0.
   adv_period: 10
+  max_curve_loss_ratio: 100.
 
 optimizer:
   _target_: torch.optim.Adam
