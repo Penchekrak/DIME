@@ -43,10 +43,10 @@ model:
   freeze_start: True
   freeze_end: True
 
-n_batches: 100
+n_batches: 1
 
 margin: 0.25
-n_pts: 13
+n_pts: 4
 
 single_model:
   _target_: toy_model.SingleToyTrainer
