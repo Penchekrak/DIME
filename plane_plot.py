@@ -114,6 +114,7 @@ def main(cfg: DictConfig):
     plt.xlabel('x')
     plt.ylabel('y')
     cb = plt.colorbar(ticks=levels)
+    cb.ax.set_ylabels(labels)
 
     min_val = accs.min()
     max_val = accs.max()
@@ -127,8 +128,8 @@ def main(cfg: DictConfig):
     plt.contourf(x_grid * float(norm_x), y_grid * float(norm_y), accs, levels=levels, cmap='coolwarm')
     plt.xlabel('x')
     plt.ylabel('y')
-    plt.colorbar(ticks=levels)
-
+    cb = plt.colorbar(ticks=levels)
+    cb.ax.set_ylabels(labels)
 
     if 'name' in cfg:
         name = cfg.name
