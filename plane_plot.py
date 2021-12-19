@@ -60,16 +60,25 @@ def main(cfg: DictConfig):
     start_tens, sizes = to_tensor(start)
     end_tens, _ = to_tensor(end)
     middle_tens, _ = to_tensor(middle)
+    # print(torch.linalg.norm(start_tens - end_tens))
+    # print(torch.linalg.norm(start_tens - middle_tens))
+    # print(torch.linalg.norm(middle_tens - end_tens))
+    # exit()
     # first basis vector
     e_x = end_tens - start_tens
-    dx = torch.linalg.norm(e_x)
+    norm_x = torch.linalg.norm(e_x)
     # second basis vector
     e_y_skewed = middle_tens - start_tens
-    e_y = e_y_skewed - torch.inner(e_x, e_y_skewed) / dx * e_x
-    dy = torch.linalg.norm(e_y)
-    # print(torch.linalg.norm(e_x), torch.abs(e_x).mean())
-    x_middle = torch.inner(e_x, e_y_skewed) / dx
-    y_middle = 1 / dy
+    e_y = e_y_skewed - torch.inner(e_x / norm_x ** 2, e_y_skewed) * e_x
+    norm_y = torch.linalg.norm(e_y)
+    # print(torch.linalg.norm(e_x))
+    # print(torch.linalg.norm(e_y_skewed))
+    # print(torch.linalg.norm(e_y))
+    # print(torch.inner(e_x, e_y))
+    x_middle = torch.inner(e_x, e_y_skewed) / norm_x ** 2
+    y_middle = 1
+    # print(x_middle, y_middle, torch.linalg.norm(e_y_skewed - x_middle * e_x - y_middle * e_y))
+    # print(np.linalg.norm(middle_tens - (start_tens + x_middle*e_x + y_middle*e_y)))
 
     margin = cfg.margin
     n_pts = cfg.n_pts
@@ -81,23 +90,22 @@ def main(cfg: DictConfig):
 
     for i, x in tqdm(enumerate(xs), desc='x', disable=True):
         for j, y in tqdm(enumerate(ys), desc='y', leave=True):
-            # x, y = float(x), float(y)
-            params_tensor = x * dx * e_x + y * dy * e_y
+            params_tensor = start_tens + x * e_x + y * e_y
             state_dict = remove_pref_from_dict(to_state_dict(params_tensor, sizes))
             single_model.net.load_state_dict(state_dict)
             results = trainer.validate(single_model, val_dataloaders=datamodule.train_dataloader(), verbose=False)[0]
             losses[i, j] = results['val loss']
             accs[i, j] = results['Accuracy']
-            # print(accs[i, j], losses[i, j])
-        # exit()
+            # print(x, y, accs[i, j], losses[i, j])
 
     plt.figure(figsize=(10, 10))
     for ind, data, title in zip([1, 2], [losses, accs], ['Train losses', 'Train accuracy']):
         plt.subplot(2, 2, ind)
-        plt.scatter([0, x_middle * dx, 1], [0, y_middle * dy, 0], c='black')
-        plt.plot([0, x_middle * dx, 1], [0, y_middle * dy, 0], c='black')
+        plt.scatter([0, x_middle * norm_x, norm_x], [0, y_middle * norm_y, 0], c='black')
+        plt.plot([0, x_middle * norm_x, norm_x], [0, y_middle * norm_y, 0], c='black')
         plt.title(title)
-        plt.contourf(x_grid, y_grid, data, locator=ticker.LogLocator(subs='all'), cmap='coolwarm')
+        plt.contourf(x_grid * float(norm_x), y_grid * float(norm_y), data, locator=ticker.LogLocator(subs='all'),
+                     cmap='coolwarm')
         plt.xlabel('x')
         plt.ylabel('y')
         plt.colorbar()
