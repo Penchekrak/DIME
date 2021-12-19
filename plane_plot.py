@@ -103,7 +103,8 @@ def main(cfg: DictConfig):
 
     min_val = losses.min()
     max_val = losses.max()
-    levels = np.logspace(np.log10(min_val + 1e-10), np.log10(max_val + 1e-10), 30)
+    # levels = np.logspace(np.log10(min_val + 1e-10), np.log10(max_val + 1e-10), 30)
+    levels = np.linspace(min_val, max_val, 30)
     labels = [f'{num:.3f}' for num in levels]
 
     plt.subplot(1, 2, 1)
