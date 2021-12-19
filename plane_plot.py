@@ -99,7 +99,7 @@ def main(cfg: DictConfig):
             # print(x, y, accs[i, j], losses[i, j])
 
     plt.figure(figsize=(12, 6))
-    for ind, data, title in zip([1, 2], [losses, accs], ['Train losses', 'Train accuracy']):
+    # for ind, data, title in zip([1, 2], [losses, accs], ['Train losses', 'Train accuracy']):
 
     min_val = losses.min()
     max_val = losses.max()
