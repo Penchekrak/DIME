@@ -6,3 +6,4 @@ hydra-core
 wandb
 matplotlib
 plotly
+tqdm

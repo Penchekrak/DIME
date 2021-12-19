@@ -30,7 +30,16 @@ Project for the course "Bayesian Methods of Machine Learning" at Skoltech
 
 The experiment workflow is implemented via PyTorch Lightning, which ensures convenient reproducibility. 
 
-The main script `train.py` can be launched with an argument `--config-name=<desired config name>`, where `<desired config name>` can be any .yaml file from the `configs/` folder or a custom config.
+The requirements are listed in the `requirements.txt`
+
+The main script `train.py` and the plotting script `plane_plot.py` can be launched with an argument `--config-name=<desired config name>`, where `<desired config name>` can be any .yaml file from the `configs/` folder or a custom config.
+
+Examples:
+
+```bash
+python train.py --config-name=toy.yaml
+python plane_plot.py --config-name=plot_plane_toy_curve.yaml
+```
 
 All of the model checkpoints necessary for the experiments are provided in the `ckpt/` folder.
 
