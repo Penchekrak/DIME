@@ -43,6 +43,7 @@ optimizer:
 metrics:
   - _target_: torchmetrics.Accuracy
   - _target_: torchmetrics.AUROC
+    num_classes: 10
   - _target_: torchmetrics.F1
 
 datamodule:
