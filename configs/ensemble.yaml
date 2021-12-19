@@ -6,17 +6,33 @@ model:
   architecture:
     _target_: torch.nn.Sequential
     _args_:
+      - _target_: utils.Block
+        in_channels: 3
+        out_channels: 32
+        kernel_size: 3
+      - _target_: utils.Block
+        in_channels: 32
+        out_channels: 64
+        kernel_size: 3
+      - _target_: utils.Block
+        in_channels: 64
+        out_channels: 128
+        kernel_size: 3
+      - _target_: utils.Block
+        in_channels: 128
+        out_channels: 256
+        kernel_size: 3
       - _target_: torch.nn.Flatten
       - _target_: torch.nn.Linear
-        in_features: 784
-        out_features: 100
+        in_features: 1024
+        out_features: 512
       - _target_: torch.nn.ReLU
       - _target_: torch.nn.Linear
-        in_features: 100
-        out_features: 100
+        in_features: 512
+        out_features: 512
       - _target_: torch.nn.ReLU
       - _target_: torch.nn.Linear
-        in_features: 100
+        in_features: 512
         out_features: 10
 
 optimizer:
@@ -26,11 +42,13 @@ optimizer:
 
 metrics:
   - _target_: torchmetrics.Accuracy
+  - _target_: torchmetrics.AUROC
+  - _target_: torchmetrics.F1
 
 datamodule:
-  _target_: datamodules.MNISTDataModule
-  data_dir: 'data/MNIST'
-  batch_size: 128
+  _target_: datamodules.CIFAR10DataModule
+  data_dir: 'data/CIFAR10'
+  batch_size: 64
 
 trainer:
   log_every_n_steps: 20
