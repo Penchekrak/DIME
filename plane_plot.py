@@ -104,7 +104,7 @@ def main(cfg: DictConfig):
     min_val = losses.min()
     max_val = losses.max()
     levels = np.logspace(np.log10(min_val + 1e-10), np.log10(max_val + 1e-10), 30)
-    labels = [f'{num:.1e}' for num in levels]
+    labels = [f'{num:.3f}' for num in levels]
 
     plt.subplot(1, 2, 1)
     plt.scatter([0, x_middle * norm_x, norm_x], [0, y_middle * norm_y, 0], c='black')
@@ -119,7 +119,7 @@ def main(cfg: DictConfig):
     min_val = accs.min()
     max_val = accs.max()
     levels = np.linspace(min_val, max_val, 30)
-    labels = [f'{num:.1e}' for num in levels]
+    labels = [f'{num:.3f}' for num in levels]
 
     plt.subplot(1, 2, 2)
     plt.scatter([0, x_middle * norm_x, norm_x], [0, y_middle * norm_y, 0], c='black')
