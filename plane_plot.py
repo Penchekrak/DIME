@@ -88,7 +88,7 @@ def main(cfg: DictConfig):
     accs = np.zeros((n_pts, n_pts))
     x_grid, y_grid = np.meshgrid(xs, ys, indexing='ij')
 
-    for i, x in tqdm(enumerate(xs)):
+    for i, x in tqdm(enumerate(xs), total=n_pts):
         for j, y in enumerate(ys):
             params_tensor = start_tens + x * e_x + y * e_y
             state_dict = remove_pref_from_dict(to_state_dict(params_tensor, sizes))
