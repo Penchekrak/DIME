@@ -272,19 +272,17 @@ class MiniMaxToyTrainer(pl.LightningModule):
             self.log("loss/max_curve", max_curve_loss)
             if max_curve_loss > self.max_curve_loss_ratio * max(l0, l1):
                 mean_curve_loss = 0.
-        else:
-            mean_curve_loss = 0.
 
-        adv_loss = l0 + l1 - mean_curve_loss + self.C / (1 + d)
+            adv_loss = l0 + l1 - mean_curve_loss + self.C / (1 + d)
 
-        self.log("loss/w0", l0)
-        self.log("loss/w1", l1)
-        self.log("loss/adv", adv_loss)
-        self.log("distance", d)
+            self.log("loss/w0", l0)
+            self.log("loss/w1", l1)
+            self.log("loss/adv", adv_loss)
+            self.log("distance", d)
 
-        ends_opt.zero_grad()
-        self.manual_backward(adv_loss)
-        ends_opt.step()
+            ends_opt.zero_grad()
+            self.manual_backward(adv_loss)
+            ends_opt.step()
 
     def validation_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
