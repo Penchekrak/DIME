@@ -28,7 +28,7 @@ def remove_pref_from_dict(state_dict):
 
 
 @torch.no_grad()
-@hydra.main(config_path='configs', config_name='plot_plane_toy_curve.yaml')
+@hydra.main(config_path='configs')
 def main(cfg: DictConfig):
     logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
     seed_everything(cfg.seed)
@@ -53,15 +53,6 @@ def main(cfg: DictConfig):
     print(f'Plotting loss plane for model {type(model)}')
     single_model = instantiate(cfg.single_model, architecture=cfg.model['architecture'], optimizer_conf=None,
                                metrics_conf=cfg.metrics, _recursive_=False)
-    # # print(single_model)
-    # print('Single model ', list(single_model.state_dict().keys()))
-    # print('Start points ', list(model.curve.curves.keys()))
-    # # print('Inner params ', list(model.curve.start_parameters().keys()))
-    #
-    # print()
-    # print('Single model ', [t.shape for t in single_model.state_dict().values()])
-    # print('Start points ', [t.shape for t in model.curve.start_parameters()])
-    # print('Inner params ', [t.shape for t in model.curve.inner_parameters()])
     param_names = list(single_model.state_dict().keys())
     start = OrderedDict(zip(param_names, model.curve.start_parameters()))
     end = OrderedDict(zip(param_names, model.curve.end_parameters()))
