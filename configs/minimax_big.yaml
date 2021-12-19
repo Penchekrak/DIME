@@ -34,8 +34,8 @@ model:
         in_features: 512
         out_features: 10
   curve:
-    start: 'ckpt/big1.ckpt'
-    end: 'ckpt/big2.ckpt'
+    start: 'ckpt/big3.ckpt'
+    end: 'ckpt/big4.ckpt'
     curve_type: curves.QuadraticBezier
   n_points: 16
   freeze_start: False
