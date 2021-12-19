@@ -2,7 +2,7 @@ seed: 42
 
 model:
   _target_: toy_model.CurveToyTrainer.load_from_checkpoint
-  checkpoint_path: 'ckpt/curve_between_distant_ends_from_133.ckpt'
+  checkpoint_path: 'ckpt/curve_between_independent_ends_from_149.ckpt'
   architecture:
     _target_: torch.nn.Sequential
     _args_:
@@ -36,8 +36,8 @@ model:
         out_features: 10
 
   curve:
-    start: 'ckpt/133_end1.ckpt'
-    end: 'ckpt/133_end2.ckpt'
+    start: 'ckpt/149_end1.ckpt'
+    end: 'ckpt/149_end2.ckpt'
     curve_type: curves.Polyline2
   n_points: 16
   freeze_start: True
