@@ -34,13 +34,14 @@ model:
         in_features: 512
         out_features: 10
   curve:
-    start: 'ckpt/big3.ckpt'
-    end: 'ckpt/big4.ckpt'
-    curve_type: curves.QuadraticBezier
+    start: 'ckpt/big1.ckpt'
+    end: 'ckpt/big2.ckpt'
+    curve_type: curves.Polyline2
   n_points: 16
   freeze_start: False
   freeze_end: False
   C: 0.
+  adv_period: 10
 
 optimizer:
   _target_: torch.optim.Adam

@@ -212,7 +212,8 @@ class MiniMaxToyTrainer(pl.LightningModule):
             n_points: int = 10,
             freeze_start: bool = False,
             freeze_end: bool = False,
-            C: float = 1.0
+            C: float = 1.0,
+            adv_period: int = 1
     ):
         super(MiniMaxToyTrainer, self).__init__()
         self.loss = torch.nn.CrossEntropyLoss()
@@ -229,6 +230,7 @@ class MiniMaxToyTrainer(pl.LightningModule):
         self.n_points = n_points
         self.eps = eps
         self.C = C
+        self.adv_period = adv_period
 
         self.automatic_optimization = False
 
@@ -247,15 +249,19 @@ class MiniMaxToyTrainer(pl.LightningModule):
         self.manual_backward(mean_curve_loss)
         curve_opt.step()
 
-        curve_loss = []
-        for t in torch.linspace(self.eps, 1 - self.eps, self.n_points):
-            w = self.curve.get_point(t)
-            output = self.forward(x, w)
-            curve_loss.append(self.loss(output, y))
-        curve_loss = torch.stack(curve_loss)
+        if batch_idx % self.adv_period == 0:
+            curve_loss = []
+            for t in torch.linspace(self.eps, 1 - self.eps, self.n_points):
+                w = self.curve.get_point(t)
+                output = self.forward(x, w)
+                curve_loss.append(self.loss(output, y))
+            curve_loss = torch.stack(curve_loss)
 
-        max_curve_loss = torch.dot(curve_loss, torch.softmax(curve_loss, dim=0))
-        mean_curve_loss = torch.mean(curve_loss, dim=0)
+            max_curve_loss = torch.dot(curve_loss, torch.softmax(curve_loss, dim=0))
+            mean_curve_loss = torch.mean(curve_loss, dim=0)
+            self.log("loss/max_curve", max_curve_loss)
+        else:
+            mean_curve_loss = 0.
 
         w0 = self.curve.get_point(0.)
         w1 = self.curve.get_point(1.)
@@ -269,7 +275,6 @@ class MiniMaxToyTrainer(pl.LightningModule):
 
         self.log("loss/w0", l0)
         self.log("loss/w1", l1)
-        self.log("loss/max_curve", max_curve_loss)
         self.log("loss/adv", adv_loss)
         self.log("distance", d)
 
