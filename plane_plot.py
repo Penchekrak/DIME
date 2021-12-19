@@ -89,7 +89,7 @@ def main(cfg: DictConfig):
     x_grid, y_grid = np.meshgrid(xs, ys, indexing='ij')
 
     for i, x in tqdm(enumerate(xs)):
-        for j, y in tqdm(enumerate(ys), leave=False):
+        for j, y in enumerate(ys):
             params_tensor = start_tens + x * e_x + y * e_y
             state_dict = remove_pref_from_dict(to_state_dict(params_tensor, sizes))
             single_model.net.load_state_dict(state_dict)
