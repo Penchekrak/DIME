@@ -114,7 +114,7 @@ def main(cfg: DictConfig):
     plt.xlabel('x')
     plt.ylabel('y')
     cb = plt.colorbar(ticks=levels)
-    cb.ax.set_ylabels(labels)
+    cb.ax.set_yticklabels(labels)
 
     min_val = accs.min()
     max_val = accs.max()
