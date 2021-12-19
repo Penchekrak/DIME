@@ -255,6 +255,7 @@ class MiniMaxToyTrainer(pl.LightningModule):
         curve_loss = torch.stack(curve_loss)
 
         max_curve_loss = torch.dot(curve_loss, torch.softmax(curve_loss, dim=0))
+        mean_curve_loss = torch.mean(curve_loss, dim=0)
 
         w0 = self.curve.get_point(0.)
         w1 = self.curve.get_point(1.)
@@ -264,7 +265,7 @@ class MiniMaxToyTrainer(pl.LightningModule):
         l1 = self.loss(output_1, y)
         d = distance(w0, w1)
 
-        adv_loss = l0 + l1 - max_curve_loss + self.C / (1 + d)
+        adv_loss = l0 + l1 - mean_curve_loss + self.C / (1 + d)
 
         self.log("loss/w0", l0)
         self.log("loss/w1", l1)
