@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pytorch_lightning as pl
 import torch
-from hydra.utils import instantiate
+from hydra.utils import instantiate, to_absolute_path
 from omegaconf import OmegaConf
 from torchmetrics import MetricCollection
 
@@ -21,7 +21,9 @@ class EnsembleEvaluator(pl.LightningModule):
         super(EnsembleEvaluator, self).__init__(*args, **kwargs)
         self.models = []
         for ckpt in checkpoints:
-            self.models.append(instantiate(architecture).load_state_dict(torch.load(ckpt)))
+            m = instantiate(architecture)
+            m.load_state_dict(torch.load(to_absolute_path(ckpt))['state_dict'])
+            self.models.append(m)
         if weights is None:
             self.weights = torch.ones(len(self.models)) / len(self.models)
         else:
@@ -43,3 +45,9 @@ class EnsembleEvaluator(pl.LightningModule):
         x, y = batch
         outputs = self.forward(x)
         self.log_dict(self.metrics(outputs, y), on_step=False, on_epoch=True)
+
+    def training_step(self, *args, **kwargs):
+        pass
+
+    def configure_optimizers(self):
+        pass
