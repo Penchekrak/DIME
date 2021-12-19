@@ -1,0 +1,46 @@
+seed: 42
+
+model:
+  _target_: ensemble.EnsembleEvaluator
+  checkpoints: ['ckpt/133_end1.ckpt', 'ckpt/133_end2.ckpt']
+  architecture:
+    _target_: torch.nn.Sequential
+    _args_:
+      - _target_: torch.nn.Flatten
+      - _target_: torch.nn.Linear
+        in_features: 784
+        out_features: 100
+      - _target_: torch.nn.ReLU
+      - _target_: torch.nn.Linear
+        in_features: 100
+        out_features: 100
+      - _target_: torch.nn.ReLU
+      - _target_: torch.nn.Linear
+        in_features: 100
+        out_features: 10
+
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+  weight_decay: 1e-5
+
+metrics:
+  - _target_: torchmetrics.Accuracy
+
+datamodule:
+  _target_: datamodules.MNISTDataModule
+  data_dir: 'data/MNIST'
+  batch_size: 128
+
+trainer:
+  log_every_n_steps: 20
+  max_epochs: 100
+
+logger:
+  project: curve-fitting
+  entity: distilling-object-detectors
+
+checkpoint:
+  dirpath: 'ckpt'
+  monitor: Accuracy
+  mode: 'max'
