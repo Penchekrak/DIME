@@ -101,21 +101,16 @@ def main(cfg: DictConfig):
     plt.figure(figsize=(12, 6))
     # for ind, data, title in zip([1, 2], [losses, accs], ['Train losses', 'Train accuracy']):
 
-    min_val = losses.min()
-    max_val = losses.max()
-    levels = np.logspace(np.log10(min_val + 1e-10), np.log10(max_val + 1e-10), 30)
-    # levels = np.linspace(min_val, max_val, 30)
-    labels = [f'{num:e}' for num in levels]
-
     plt.subplot(1, 2, 1)
     plt.scatter([0, x_middle * norm_x, norm_x], [0, y_middle * norm_y, 0], c='black')
     plt.plot([0, x_middle * norm_x, norm_x], [0, y_middle * norm_y, 0], c='black')
     plt.title('Train losses')
-    plt.contourf(x_grid * float(norm_x), y_grid * float(norm_y), losses, levels=levels, cmap='coolwarm')
+    cntr = plt.contourf(x_grid * float(norm_x), y_grid * float(norm_y), losses, locator=ticker.LogLocator(subs='all'),
+                        cmap='coolwarm')
     plt.xlabel('x')
     plt.ylabel('y')
-    cb = plt.colorbar(ticks=levels)
-    cb.ax.set_yticklabels(labels)
+    cb = plt.colorbar(ticks=cntr.levels)
+    cb.ax.set_yticklabels([f'{num:.2e}' for num in cntr.levels])
 
     min_val = accs.min()
     max_val = accs.max()
@@ -138,6 +133,7 @@ def main(cfg: DictConfig):
         name = f'from__{cfg.model.curve.start[5:-5]}__to__{cfg.model.curve.end[5:-5]}'
 
     plt.savefig(to_absolute_path(f'plots/{name}.png'))
+
 
 if __name__ == '__main__':
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
