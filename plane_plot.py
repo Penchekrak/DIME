@@ -110,7 +110,7 @@ def main(cfg: DictConfig):
     plt.xlabel('x')
     plt.ylabel('y')
     cb = plt.colorbar(ticks=cntr.levels)
-    cb.ax.set_yticklabels([f'{num:.2e}' for num in cntr.levels])
+    cb.ax.set_yticklabels(['' if i % 3 else f'{num:.2e}'for i, num in enumerate(cntr.levels)])
 
     min_val = accs.min()
     max_val = accs.max()
