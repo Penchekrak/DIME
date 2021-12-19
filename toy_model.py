@@ -107,13 +107,14 @@ class CurveToyTrainer(pl.LightningModule):
         output = self.forward(x, w)
         loss = self.loss(output, y)
         self.log('loss', loss)
+
+        if batch_idx == 0:
+            log_loss_along_curve(batch, self)
+
         return loss
 
     def validation_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
-
-        if batch_idx == 0:
-            log_loss_along_curve(batch, self)
 
         t = self.t_distribution.sample()
         w = self.curve.get_point(t)
@@ -171,13 +172,17 @@ class CurveEndsToyTrainer(pl.LightningModule):
         self.log('loss/1/train', l1)
         self.log('loss/2/train', l2)
         self.log('distance', d)
-        return l1 + l2 + self.C / (1 + d)
+        if batch_idx % 100 == 0:
+            self.C *= 1 - self.C_decay
+
+        if batch_idx == 0:
+            log_loss_along_curve(batch, self)
+
+        return l1 + l2 + self.C * d
 
     def validation_step(self, batch: tp.Tuple[torch.Tensor, ...], batch_idx: int):
         x, y = batch
 
-        if batch_idx == 0:
-            log_loss_along_curve(batch, self)
 
         w1 = self.curve.get_point(0.)
         w2 = self.curve.get_point(1.)
