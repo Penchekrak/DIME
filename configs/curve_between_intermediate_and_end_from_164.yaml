@@ -35,7 +35,7 @@ model:
         out_features: 10
 
   curve:
-    start: 'ckpt/164_0_8.ckpt'
+    start: 'ckpt/164_0_9.ckpt'
     end: 'ckpt/164_end2.ckpt'
     curve_type: curves.Polyline2
   n_points: 16
