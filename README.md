@@ -44,3 +44,6 @@ python plane_plot.py --config-name=plot_plane_toy_curve.yaml
 All of the model checkpoints necessary for the experiments are provided in the `ckpt/` folder.
 
 The script automatically finds and tries to use a GPU if it is available.
+
+### experiments regarding adversarial training
+[colab](https://colab.research.google.com/drive/1PGRYmvdb52OduKZigP-KouC26dxPqQCW?usp=sharing)
